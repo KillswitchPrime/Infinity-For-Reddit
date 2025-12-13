@@ -3,9 +3,11 @@
   
 </h1>
 
-# There have been multiple reports of Reddit banning users of the app.
+# Reddit updated their login flow to use reCAPTCHA. The app can no longer be used.
 
-# If you still want to use the app, update to at least version 5.9.2 and log out of all accounts to wipe the session cookies associated with older versions and login again.
+## There have been multiple reports of Reddit banning users of the app.
+
+## If you still want to use the app, update to at least version 5.9.2 and log out of all accounts to wipe the session cookies associated with older versions and login again.
 
 ## ⚠️ Warning
 
