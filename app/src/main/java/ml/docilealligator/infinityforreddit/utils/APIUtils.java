@@ -36,7 +36,6 @@ public class APIUtils {
     public static final String RESPONSE_TYPE_KEY = "response_type";
     public static final String RESPONSE_TYPE = "code";
     public static final String STATE_KEY = "state";
-    public static final String STATE = "23ro8xlxvzp4asqd";
     // Generate a random state per-session to prevent CSRF on the OAuth redirect.
     public static final String STATE = java.util.UUID.randomUUID().toString();
     public static final String REDIRECT_URI_KEY = "redirect_uri";
