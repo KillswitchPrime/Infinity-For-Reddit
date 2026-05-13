@@ -20,6 +20,7 @@ import java.util.List;
 
 import io.noties.markwon.Markwon;
 import io.noties.markwon.MarkwonReducer;
+import io.noties.markwon.image.AsyncDrawableScheduler;
 import io.noties.markwon.recycler.MarkwonAdapter;
 import io.noties.markwon.recycler.SimpleEntry;
 import ml.docilealligator.infinityforreddit.R;
@@ -118,6 +119,11 @@ public class CustomMarkwonAdapter extends MarkwonAdapter {
 
         entry.bindHolder(markwon, holder, node);
 
+        // Schedule async image/GIF loading after binding
+        if (holder.itemView instanceof TextView) {
+            AsyncDrawableScheduler.schedule((TextView) holder.itemView);
+        }
+
         if (holder.itemView instanceof SpoilerOnClickTextView) {
             holder.itemView.setOnClickListener(onClickListener);
             holder.itemView.setOnLongClickListener(onLongClickListener);
@@ -152,6 +158,31 @@ public class CustomMarkwonAdapter extends MarkwonAdapter {
 
         final Entry<Node, Holder> entry = getEntry(holder.getItemViewType());
         entry.onViewRecycled(holder);
+
+        // Unschedule GIF animations when view is recycled
+        if (holder.itemView instanceof TextView) {
+            AsyncDrawableScheduler.unschedule((TextView) holder.itemView);
+        }
+    }
+
+    @Override
+    public void onViewAttachedToWindow(@NonNull Holder holder) {
+        super.onViewAttachedToWindow(holder);
+        if (holder.itemView instanceof TextView) {
+            TextView tv = (TextView) holder.itemView;
+            AsyncDrawableScheduler.schedule(tv);
+            // Re-attach invalidation callbacks and restart GIFs immediately and after a short
+            // delay to cover the case where the drawable result arrives slightly late.
+            ml.docilealligator.infinityforreddit.markdown.InlineGifPlugin.reattachAndStartGifs(tv);
+            tv.postDelayed(() -> ml.docilealligator.infinityforreddit.markdown.InlineGifPlugin.reattachAndStartGifs(tv), 300);
+        }
+    }
+
+    @Override
+    public void onViewDetachedFromWindow(@NonNull Holder holder) {
+        super.onViewDetachedFromWindow(holder);
+        // Do NOT unschedule here — doing so clears the drawable callbacks and causes GIFs to
+        // freeze permanently when the view scrolls back into view. Only unschedule on recycle.
     }
 
     @SuppressWarnings("unused")

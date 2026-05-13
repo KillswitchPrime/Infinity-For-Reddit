@@ -1201,6 +1201,32 @@ public class ViewPostDetailFragment extends Fragment implements FragmentCommunic
             mRecyclerView.onWindowVisibilityChanged(View.VISIBLE);
         }
         tryMarkingPostAsRead();
+        // Re-start any GIFs in comment text that stopped while the fragment was paused
+        // (e.g. user opened image viewer and returned).
+        restartVisibleCommentGifs();
+    }
+
+    /** Walk all visible children of the comments RecyclerView and restart GIF animations. */
+    private void restartVisibleCommentGifs() {
+        androidx.recyclerview.widget.RecyclerView rv =
+                mCommentsRecyclerView != null ? mCommentsRecyclerView : mRecyclerView;
+        if (rv == null) return;
+        for (int i = 0; i < rv.getChildCount(); i++) {
+            restartGifsInView(rv.getChildAt(i));
+        }
+    }
+
+    private void restartGifsInView(android.view.View view) {
+        if (view instanceof android.widget.TextView) {
+            android.widget.TextView tv = (android.widget.TextView) view;
+            io.noties.markwon.image.AsyncDrawableScheduler.schedule(tv);
+            ml.docilealligator.infinityforreddit.markdown.InlineGifPlugin.reattachAndStartGifs(tv);
+        } else if (view instanceof android.view.ViewGroup) {
+            android.view.ViewGroup vg = (android.view.ViewGroup) view;
+            for (int i = 0; i < vg.getChildCount(); i++) {
+                restartGifsInView(vg.getChildAt(i));
+            }
+        }
     }
 
     @Override

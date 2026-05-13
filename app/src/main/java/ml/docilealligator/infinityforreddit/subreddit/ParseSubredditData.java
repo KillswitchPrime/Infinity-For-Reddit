@@ -1,6 +1,7 @@
 package ml.docilealligator.infinityforreddit.subreddit;
 
 import android.os.AsyncTask;
+import android.util.Log;
 
 import androidx.annotation.Nullable;
 
@@ -14,6 +15,7 @@ import ml.docilealligator.infinityforreddit.utils.JSONUtils;
 import ml.docilealligator.infinityforreddit.utils.Utils;
 
 public class ParseSubredditData {
+    private static final String TAG = "ParseSubredditData";
     public static void parseSubredditData(String response, ParseSubredditDataListener parseSubredditDataListener) {
         new ParseSubredditDataAsyncTask(response, parseSubredditDataListener).execute();
     }
@@ -33,7 +35,8 @@ public class ParseSubredditData {
         String description = subredditDataJsonObject.getString(JSONUtils.PUBLIC_DESCRIPTION_KEY).trim();
         String sidebarDescription = Utils.modifyMarkdown(subredditDataJsonObject.getString(JSONUtils.DESCRIPTION_KEY).trim());
         long createdUTC = subredditDataJsonObject.getLong(JSONUtils.CREATED_UTC_KEY) * 1000;
-        String suggestedCommentSort = subredditDataJsonObject.getString(JSONUtils.SUGGESTED_COMMENT_SORT_KEY);
+        String suggestedCommentSort = subredditDataJsonObject.isNull(JSONUtils.SUGGESTED_COMMENT_SORT_KEY)
+                ? null : subredditDataJsonObject.optString(JSONUtils.SUGGESTED_COMMENT_SORT_KEY, null);
 
         String bannerImageUrl;
         if (subredditDataJsonObject.isNull(JSONUtils.BANNER_BACKGROUND_IMAGE_KEY)) {
@@ -90,26 +93,28 @@ public class ParseSubredditData {
                 parseFailed = false;
             } catch (JSONException e) {
                 e.printStackTrace();
-                parseSubredditDataListener.onParseSubredditDataFail();
+                parseFailed = true;
             }
         }
 
         @Override
         protected Void doInBackground(Void... voids) {
+            if (parseFailed) return null;
             try {
                 JSONObject data = jsonResponse.getJSONObject(JSONUtils.DATA_KEY);
-                mNCurrentOnlineSubscribers = data.getInt(JSONUtils.ACTIVE_USER_COUNT_KEY);
+                mNCurrentOnlineSubscribers = data.optInt(JSONUtils.ACTIVE_USER_COUNT_KEY, 0);
                 subredditData = parseSubredditData(data, true);
+                Log.d(TAG, "parseSubredditData success, subredditData=" + (subredditData != null ? subredditData.getName() : "null"));
             } catch (JSONException e) {
                 parseFailed = true;
-                e.printStackTrace();
+                Log.e(TAG, "parseSubredditData JSONException", e);
             }
             return null;
         }
 
         @Override
         protected void onPostExecute(Void aVoid) {
-            if (!parseFailed) {
+            if (!parseFailed && subredditData != null) {
                 parseSubredditDataListener.onParseSubredditDataSuccess(subredditData, mNCurrentOnlineSubscribers);
             } else {
                 parseSubredditDataListener.onParseSubredditDataFail();

@@ -2,8 +2,23 @@ plugins {
     id 'com.android.application'
 }
 
+// Load signing credentials from local.properties (never committed to VCS)
+def localProps = new Properties()
+def localPropsFile = rootProject.file('local.properties')
+if (localPropsFile.exists()) {
+    localPropsFile.withInputStream { localProps.load(it) }
+}
+
 android {
     compileSdk 33
+    signingConfigs {
+        release {
+            storeFile file("../release.jks")
+            storePassword localProps['KEYSTORE_STORE_PASSWORD'] ?: System.getenv('KEYSTORE_STORE_PASSWORD')
+            keyAlias     localProps['KEYSTORE_KEY_ALIAS']     ?: System.getenv('KEYSTORE_KEY_ALIAS')
+            keyPassword  localProps['KEYSTORE_KEY_PASSWORD']  ?: System.getenv('KEYSTORE_KEY_PASSWORD')
+        }
+    }
     defaultConfig {
         applicationId "ml.docilealligator.infinityforreddit"
         minSdk 21
@@ -16,11 +31,18 @@ android {
                 arguments = [eventBusIndex: 'ml.docilealligator.infinityforreddit.EventBusIndex']
             }
         }
+        // Inject credentials from local.properties (not committed to VCS)
+        buildConfigField "String", "REDDIT_CLIENT_ID", "\"${localProps['REDDIT_CLIENT_ID'] ?: System.getenv('REDDIT_CLIENT_ID') ?: ''}\""
+        buildConfigField "String", "REDDIT_USER_AGENT", "\"${localProps['REDDIT_USER_AGENT'] ?: System.getenv('REDDIT_USER_AGENT') ?: ''}\""
+        buildConfigField "String", "IMGUR_CLIENT_ID", "\"${localProps['IMGUR_CLIENT_ID'] ?: System.getenv('IMGUR_CLIENT_ID') ?: ''}\""
+        buildConfigField "String", "REDGIFS_CLIENT_ID", "\"${localProps['REDGIFS_CLIENT_ID'] ?: System.getenv('REDGIFS_CLIENT_ID') ?: ''}\""
+        buildConfigField "String", "REDGIFS_CLIENT_SECRET", "\"${localProps['REDGIFS_CLIENT_SECRET'] ?: System.getenv('REDGIFS_CLIENT_SECRET') ?: ''}\""
     }
     buildTypes {
         release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            minifyEnabled true
+            signingConfig signingConfigs.release
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         minifiedRelease {
             initWith buildTypes.release
@@ -51,6 +73,7 @@ android {
 
     buildFeatures {
         viewBinding true
+        buildConfig true
     }
 }
 
@@ -99,7 +122,7 @@ dependencies {
     implementation "com.squareup.retrofit2:retrofit:$retrofitVersion"
     implementation "com.squareup.retrofit2:converter-scalars:$retrofitVersion"
     implementation "com.squareup.retrofit2:adapter-guava:$retrofitVersion"
-    implementation 'com.squareup.okhttp3:okhttp:4.9.1'
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
 
     // Dependency injection
     def daggerVersion = '2.40.5'
@@ -111,7 +134,7 @@ dependencies {
     def butterknifeVersion = "10.2.3"
     implementation "com.jakewharton:butterknife:$butterknifeVersion"
     annotationProcessor "com.jakewharton:butterknife-compiler:$butterknifeVersion"
-    compileOnly 'com.android.databinding:viewbinding:7.3.1'
+    // compileOnly 'com.android.databinding:viewbinding:7.3.1' // removed: redundant with buildFeatures.viewBinding
 
     // Events
     def eventbusVersion = "3.3.1"
@@ -132,10 +155,10 @@ dependencies {
     implementation 'com.google.code.gson:gson:2.8.9'
 
     // Java library for zip files and streams
-    implementation 'net.lingala.zip4j:zip4j:2.11.2'
+    implementation 'net.lingala.zip4j:zip4j:2.11.5'
 
     // IO functionality
-    implementation 'commons-io:commons-io:2.5'
+    implementation 'commons-io:commons-io:2.14.0'
 
     // Crash reporting
     implementation 'com.github.FunkyMuse:Crashy:1.2.0'
@@ -150,6 +173,7 @@ dependencies {
     implementation 'jp.wasabeef:glide-transformations:4.3.0'
     implementation 'com.github.santalu:aspect-ratio-imageview:1.0.9'
     implementation 'pl.droidsonroids.gif:android-gif-drawable:1.2.23'
+    implementation 'com.github.chrisbanes:PhotoView:2.3.0'
     def bivVersion = "1.8.1"
     implementation "com.github.piasy:BigImageViewer:$bivVersion"
     implementation "com.github.piasy:GlideImageLoader:$bivVersion"
@@ -163,6 +187,8 @@ dependencies {
     implementation "io.noties.markwon:recycler-table:$markwonVersion"
     implementation "io.noties.markwon:simple-ext:$markwonVersion"
     implementation "io.noties.markwon:inline-parser:$markwonVersion"
+    implementation "io.noties.markwon:image:$markwonVersion"
+    implementation "io.noties.markwon:image-glide:$markwonVersion"
     implementation 'com.atlassian.commonmark:commonmark-ext-gfm-tables:0.14.0'
     implementation 'me.saket:better-link-movement-method:2.2.0'
 
@@ -173,7 +199,7 @@ dependencies {
     implementation 'com.lsjwzh:materialloadingprogressbar:0.5.8-RELEASE'
 
     // Customizable TextView
-    implementation 'com.libRG:customtextview:2.4'
+    // com.libRG:customtextview:2.4 // removed: replaced by local stub at com/libRG/CustomTextView.java
 
     // Dismiss gesturing
     implementation 'app.futured.hauler:hauler:5.0.0'

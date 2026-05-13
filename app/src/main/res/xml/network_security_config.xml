@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Restricts cleartext (HTTP) traffic to only the specific hosts that require it
+    (e.g. some third-party media CDNs). All Reddit API traffic uses HTTPS.
+    Previously android:usesCleartextTraffic="true" allowed HTTP to ANY host.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
+

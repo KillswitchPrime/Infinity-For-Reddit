@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="CustomTextView">
+        <!-- Shape: "rectangle" or "oval" -->
+        <attr name="lib_setShape" format="string" />
+        <!-- Corner radius for rectangle shape -->
+        <attr name="lib_setRadius" format="dimension" />
+        <!-- Border stroke color -->
+        <attr name="lib_setStrokeColor" format="color" />
+        <!-- Border stroke width -->
+        <attr name="lib_setStrokeWidth" format="dimension" />
+        <!-- Background fill color -->
+        <attr name="lib_setSolidColor" format="color" />
+        <!-- Asset path to a custom font -->
+        <attr name="lib_setFont" format="string" />
+        <!-- Enable rounded clipping -->
+        <attr name="lib_setRoundedView" format="boolean" />
+    </declare-styleable>
+</resources>

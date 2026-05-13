@@ -213,7 +213,8 @@ public class CommentsListingRecyclerViewAdapter extends PagedListAdapter<Comment
                     Utils.setHTMLWithImageToTextView(((CommentViewHolder) holder).awardsTextView, comment.getAwards(), true);
                 }
 
-                ((CommentViewHolder) holder).markwonAdapter.setMarkdown(mMarkwon, comment.getCommentMarkdown());
+                ((CommentViewHolder) holder).markwonAdapter.setMarkdown(mMarkwon,
+                        ml.docilealligator.infinityforreddit.markdown.InlineGifPlugin.preprocessMarkdown(comment.getCommentMarkdown()));
                 // noinspection NotifyDataSetChanged
                 ((CommentViewHolder) holder).markwonAdapter.notifyDataSetChanged();
 

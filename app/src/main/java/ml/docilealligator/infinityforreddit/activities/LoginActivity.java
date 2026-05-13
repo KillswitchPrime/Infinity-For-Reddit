@@ -150,7 +150,7 @@ public class LoginActivity extends BaseActivity {
 
         webView.getSettings().setJavaScriptEnabled(true);
         webView.getSettings().setDomStorageEnabled(true);
-        webView.getSettings().setUserAgentString(APIUtils.DESKTOP_USER_AGENT);
+        webView.getSettings().setUserAgentString(APIUtils.LOGIN_WEBVIEW_USER_AGENT);
 
         Uri baseUri = Uri.parse(APIUtils.OAUTH_URL);
         Uri.Builder uriBuilder = baseUri.buildUpon();
