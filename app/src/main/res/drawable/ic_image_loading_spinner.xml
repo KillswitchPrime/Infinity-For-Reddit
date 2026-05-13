@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Arc spinner vector — a partial circle arc used as the loading indicator.
+  The group "spinner_group" is the rotation target animated by ic_image_loading_animated.xml.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+
+    <group
+        android:name="spinner_group"
+        android:pivotX="24"
+        android:pivotY="24">
+        <!-- Arc: a thick-stroked partial ring, ~270° sweep to look like a classic spinner -->
+        <path
+            android:fillColor="@android:color/transparent"
+            android:pathData="M24,6 A18,18 0 1,1 6,24"
+            android:strokeColor="#64B5F6"
+            android:strokeWidth="4"
+            android:strokeLineCap="round" />
+    </group>
+</vector>

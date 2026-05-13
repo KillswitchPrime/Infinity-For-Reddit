@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
+import ml.docilealligator.infinityforreddit.BuildConfig;
 import okhttp3.MediaType;
 import okhttp3.RequestBody;
 
@@ -14,6 +15,7 @@ import okhttp3.RequestBody;
  */
 
 public class APIUtils {
+    public static final String OAUTH_URL = "https://www.reddit.com/api/v1/authorize";
     public static final String OAUTH_API_BASE_URI = "https://oauth.reddit.com";
     public static final String API_BASE_URI = "https://www.reddit.com";
     public static final String API_UPLOAD_MEDIA_URI = "https://reddit-uploaded-media.s3-accelerate.amazonaws.com";
@@ -30,11 +32,21 @@ public class APIUtils {
 
     public static final String CLIENT_ID_KEY = "client_id";
     public static final String CLIENT_SECRET_KEY = "client_secret";
-    public static final String CLIENT_ID = "ohXpoqrZYub1kg";
-    public static final String IMGUR_CLIENT_ID = "Client-ID cc671794e0ab397";
-    public static final String REDGIFS_CLIENT_ID = "";
-    public static final String REDGIFS_CLIENT_SECRET = "=";
-    public static final String GIPHY_SDK_KEY = "s3ybk2jbEg4BmxQqvqgXoGs3A0UHUH8y";
+    public static final String CLIENT_ID = BuildConfig.REDDIT_CLIENT_ID;
+    public static final String IMGUR_CLIENT_ID = BuildConfig.IMGUR_CLIENT_ID;
+    public static final String REDGIFS_CLIENT_ID = BuildConfig.REDGIFS_CLIENT_ID;
+    public static final String REDGIFS_CLIENT_SECRET = BuildConfig.REDGIFS_CLIENT_SECRET;
+    public static final String RESPONSE_TYPE_KEY = "response_type";
+    public static final String RESPONSE_TYPE = "code";
+    public static final String STATE_KEY = "state";
+    // Generate a random state per-session to prevent CSRF on the OAuth redirect.
+    public static final String STATE = java.util.UUID.randomUUID().toString();
+    public static final String REDIRECT_URI_KEY = "redirect_uri";
+    public static final String REDIRECT_URI = "infinity://localhost";
+    public static final String DURATION_KEY = "duration";
+    public static final String DURATION = "permanent";
+    public static final String SCOPE_KEY = "scope";
+    public static final String SCOPE = "identity edit flair history modconfig modflair modlog modposts modwiki mysubreddits privatemessages read report save submit subscribe vote wikiedit wikiread creddits modcontributors modmail modothers livemanage account modself";
     public static final String ACCESS_TOKEN_KEY = "access_token";
     public static final String REDGIFS_ACCESS_TOKEN_KEY = "token";
     public static final String SIGNING_KEY = "8c7abaa5f905f70400c81bf3a1a101e75f7210104b1991f0cd5240aa80c4d99d";
@@ -44,8 +56,10 @@ public class APIUtils {
     public static final String AUTHORIZATION_KEY = "Authorization";
     public static final String AUTHORIZATION_BASE = "bearer ";
     public static final String USER_AGENT_KEY = "User-Agent";
-    public static final String USER_AGENT = "Reddit/Version 2024.06.0/Build 1418489/Android 11";
-    public static final String VIDEO_USER_AGENT = "RedditVideo/Version 2024.06.0/Build 1418489/Android 11";
+    public static final String USER_AGENT = BuildConfig.REDDIT_USER_AGENT;
+    // Spoofs a desktop Chrome browser for the login WebView only — Reddit's OAuth page
+    // redirects the Reddit API user-agent to a broken mobile flow, so we need a real browser UA here.
+    public static final String LOGIN_WEBVIEW_USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
     public static final String GRANT_TYPE_KEY = "grant_type";
     public static final String GRANT_TYPE_CLIENT_CREDENTIALS = "client_credentials";

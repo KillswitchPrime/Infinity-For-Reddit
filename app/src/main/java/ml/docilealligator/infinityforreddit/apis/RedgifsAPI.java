@@ -12,9 +12,10 @@ public interface RedgifsAPI {
     @GET("/v2/gifs/{id}")
     Call<String> getRedgifsData(@HeaderMap Map<String, String> headers, @Path("id") String id);
 
-    @HEAD("v2/gifs/{id}/hd.m3u8")
-    Call<Void> testHLS(@HeaderMap Map<String, String> headers, @Path("id") String id);
-
     @GET("/v2/auth/temporary")
-    Call<String> getRedgifsAccessToken();
+    Call<String> getTemporaryAccessToken();
+
+    @FormUrlEncoded
+    @POST("/v2/oauth/client")
+    Call<String> getRedgifsAccessToken(@FieldMap Map<String, String> params);
 }

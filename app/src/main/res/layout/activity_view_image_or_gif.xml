@@ -21,6 +21,25 @@
         app:optimizeDisplay="true"
         app:tapToRetry="false" />
 
+    <com.github.chrisbanes.photoview.PhotoView
+        android:id="@+id/gif_image_view_view_image_or_gif_activity"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+
+    <pl.droidsonroids.gif.GifImageView
+        android:id="@+id/gif_player_view_view_image_or_gif_activity"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitCenter"
+        android:visibility="gone" />
+
+    <VideoView
+        android:id="@+id/video_view_view_image_or_gif_activity"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+
     <LinearLayout
         android:id="@+id/load_image_error_linear_layout_view_image_or_gif_activity"
         android:layout_width="match_parent"

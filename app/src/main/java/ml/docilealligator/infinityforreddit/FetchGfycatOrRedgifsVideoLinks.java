@@ -3,6 +3,7 @@ package ml.docilealligator.infinityforreddit;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Handler;
+import android.util.Log;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -20,6 +21,7 @@ import retrofit2.Response;
 import retrofit2.Retrofit;
 
 public class FetchGfycatOrRedgifsVideoLinks {
+    private static final String TAG = "GfycatRedgifsFetch";
 
     public interface FetchGfycatOrRedgifsVideoLinksListener {
         void success(String webm, String mp4);
@@ -38,14 +40,17 @@ public class FetchGfycatOrRedgifsVideoLinks {
                                              FetchGfycatOrRedgifsVideoLinksListener fetchGfycatOrRedgifsVideoLinksListener) {
         executor.execute(() -> {
             try {
+                Log.d(TAG, "Fetching Gfycat video links for id=" + gfycatId);
                 Response<String> response = gfycatRetrofit.create(GfycatAPI.class).getGfycatData(gfycatId).execute();
                 if (response.isSuccessful()) {
+                    Log.d(TAG, "Gfycat response successful for id=" + gfycatId);
                     parseGfycatVideoLinks(handler, response.body(), fetchGfycatOrRedgifsVideoLinksListener);
                 } else {
+                    Log.w(TAG, "Gfycat response failed for id=" + gfycatId + ", code=" + response.code());
                     handler.post(() -> fetchGfycatOrRedgifsVideoLinksListener.failed(response.code()));
                 }
             } catch (IOException e) {
-                e.printStackTrace();
+                Log.e(TAG, "Gfycat request failed for id=" + gfycatId, e);
                 handler.post(() -> fetchGfycatOrRedgifsVideoLinksListener.failed(-1));
             }
         });
@@ -57,15 +62,18 @@ public class FetchGfycatOrRedgifsVideoLinks {
                                               FetchGfycatOrRedgifsVideoLinksListener fetchGfycatOrRedgifsVideoLinksListener) {
         executor.execute(() -> {
             try {
+                Log.d(TAG, "Fetching Redgifs video links for id=" + gfycatId);
                 Response<String> response = redgifsRetrofit.create(RedgifsAPI.class).getRedgifsData(APIUtils.getRedgifsOAuthHeader(currentAccountSharedPreferences.getString(SharedPreferencesUtils.REDGIFS_ACCESS_TOKEN, "")),
                         gfycatId).execute();
                 if (response.isSuccessful()) {
+                    Log.d(TAG, "Redgifs response successful for id=" + gfycatId);
                     parseRedgifsVideoLinks(handler, response.body(), fetchGfycatOrRedgifsVideoLinksListener);
                 } else {
+                    Log.w(TAG, "Redgifs response failed for id=" + gfycatId + ", code=" + response.code());
                     handler.post(() -> fetchGfycatOrRedgifsVideoLinksListener.failed(response.code()));
                 }
             } catch (IOException e) {
-                e.printStackTrace();
+                Log.e(TAG, "Redgifs request failed for id=" + gfycatId, e);
                 handler.post(() -> fetchGfycatOrRedgifsVideoLinksListener.failed(-1));
             }
         });
@@ -111,6 +119,7 @@ public class FetchGfycatOrRedgifsVideoLinks {
             try {
                 Response<String> response = gfycatCall.execute();
                 if (response.isSuccessful()) {
+                    Log.d(TAG, (isGfycatVideo ? "Gfycat" : "Redgifs") + " response successful in adapter flow");
                     if (isGfycatVideo) {
                         parseGfycatVideoLinks(handler, response.body(), fetchGfycatOrRedgifsVideoLinksListener);
                     } else {
@@ -118,14 +127,16 @@ public class FetchGfycatOrRedgifsVideoLinks {
                     }
                 } else {
                     if (response.code() == 404 && isGfycatVideo && automaticallyTryRedgifs) {
+                        Log.i(TAG, "Gfycat returned 404, retrying via Redgifs");
                         fetchGfycatOrRedgifsVideoLinksInRecyclerViewAdapter(executor, handler, gfycatCall.clone(),
                                 false, false, fetchGfycatOrRedgifsVideoLinksListener);
                     } else {
+                        Log.w(TAG, "Adapter flow request failed, code=" + response.code() + ", isGfycatVideo=" + isGfycatVideo);
                         handler.post(() -> fetchGfycatOrRedgifsVideoLinksListener.failed(response.code()));
                     }
                 }
             } catch (IOException e) {
-                e.printStackTrace();
+                Log.e(TAG, "Adapter flow request failed with exception", e);
                 handler.post(() -> fetchGfycatOrRedgifsVideoLinksListener.failed(-1));
             }
         });
@@ -154,7 +165,7 @@ public class FetchGfycatOrRedgifsVideoLinks {
             }
             handler.post(() -> fetchGfycatOrRedgifsVideoLinksListener.success(webm, mp4));
         } catch (JSONException e) {
-            e.printStackTrace();
+            Log.e(TAG, "Failed to parse Gfycat response", e);
             handler.post(() -> fetchGfycatOrRedgifsVideoLinksListener.failed(-1));
         }
     }
@@ -166,7 +177,7 @@ public class FetchGfycatOrRedgifsVideoLinks {
                     .getString(JSONUtils.HD_KEY);
             handler.post(() -> fetchGfycatOrRedgifsVideoLinksListener.success(mp4, mp4));
         } catch (JSONException e) {
-            e.printStackTrace();
+            Log.e(TAG, "Failed to parse Redgifs response", e);
             handler.post(() -> fetchGfycatOrRedgifsVideoLinksListener.failed(-1));
         }
     }

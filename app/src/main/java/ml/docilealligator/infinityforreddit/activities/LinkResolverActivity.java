@@ -162,7 +162,10 @@ public class LinkResolverActivity extends AppCompatActivity {
                             intent.putExtra(ViewVideoActivity.EXTRA_V_REDD_IT_URL, uri.toString());
                             startActivity(intent);
                         } else if (authority.contains("reddit.com") || authority.contains("redd.it") || authority.contains("reddit.app")) {
-                            if (authority.equals("reddit.app.link") && path.isEmpty()) {
+                            if (authority.equals("sh.reddit.com")) {
+                                // sh.reddit.com hosts richtext/new-editor posts — open in browser
+                                openInBrowser(uri, getPackageManager(), true);
+                            } else if (authority.equals("reddit.app.link") && path.isEmpty()) {
                                 String redirect = uri.getQueryParameter("$og_redirect");
                                 if (redirect != null) {
                                     handleUri(Uri.parse(redirect));

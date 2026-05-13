@@ -1,6 +1,7 @@
 package ml.docilealligator.infinityforreddit.comment;
 
 import android.os.Handler;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -23,11 +24,13 @@ import retrofit2.Response;
 import retrofit2.Retrofit;
 
 public class FetchComment {
+    private static final String TAG = "FetchComment";
+
     public static void fetchComments(Executor executor, Handler handler, Retrofit retrofit,
                                      @Nullable String accessToken, String article,
                                      String commentId, SortType.Type sortType, String contextNumber, boolean expandChildren,
-                                     Locale locale, String authorName, FetchCommentListener fetchCommentListener) {
-
+                                     Locale locale, FetchCommentListener fetchCommentListener) {
+        Log.d(TAG, "Fetching comments for article=" + article + ", commentId=" + commentId + ", sort=" + sortType);
         RedditAPI api = retrofit.create(RedditAPI.class);
         GqlAPI gqlAPI = retrofit.create(GqlAPI.class);
 
@@ -53,47 +56,33 @@ public class FetchComment {
             @Override
             public void onResponse(@NonNull Call<String> call, @NonNull Response<String> response) {
                 if (response.isSuccessful()) {
-                    if (accessToken != null) {
-                        ParseComment.parseCommentGQL(executor, handler, response.body(), authorName,
-                                expandChildren, new ParseComment.ParseCommentListener() {
-                                    @Override
-                                    public void onParseCommentSuccess(ArrayList<Comment> topLevelComments,
-                                                                      ArrayList<Comment> expandedComments,
-                                                                      String parentId, ArrayList<String> moreChildrenIds) {
-                                        fetchCommentListener.onFetchCommentSuccess(expandedComments, parentId,
-                                                moreChildrenIds);
-                                    }
+                    Log.d(TAG, "Comments fetch succeeded for article=" + article + ", parsing response");
+                    ParseComment.parseComment(executor, handler, response.body(),
+                            expandChildren, new ParseComment.ParseCommentListener() {
+                                @Override
+                                public void onParseCommentSuccess(ArrayList<Comment> topLevelComments,
+                                                                  ArrayList<Comment> expandedComments,
+                                                                  String parentId, ArrayList<String> moreChildrenIds) {
+                                    Log.d(TAG, "Comments parsed successfully for article=" + article + ", expandedCount=" + expandedComments.size());
+                                    fetchCommentListener.onFetchCommentSuccess(expandedComments, parentId,
+                                            moreChildrenIds);
+                                }
 
-                                    @Override
-                                    public void onParseCommentFailed() {
-                                        fetchCommentListener.onFetchCommentFailed();
-                                    }
-                                });
-                    } else {
-                        ParseComment.parseComment(executor, handler, response.body(),
-                                expandChildren, new ParseComment.ParseCommentListener() {
-                                    @Override
-                                    public void onParseCommentSuccess(ArrayList<Comment> topLevelComments,
-                                                                      ArrayList<Comment> expandedComments,
-                                                                      String parentId, ArrayList<String> moreChildrenIds) {
-                                        fetchCommentListener.onFetchCommentSuccess(expandedComments, parentId,
-                                                moreChildrenIds);
-                                    }
-
-                                    @Override
-                                    public void onParseCommentFailed() {
-                                        fetchCommentListener.onFetchCommentFailed();
-                                    }
-                                });
-                    }
-
+                                @Override
+                                public void onParseCommentFailed() {
+                                    Log.e(TAG, "Comments parse failed for article=" + article);
+                                    fetchCommentListener.onFetchCommentFailed();
+                                }
+                            });
                 } else {
+                    Log.w(TAG, "Comments fetch failed for article=" + article + ", code=" + response.code());
                     fetchCommentListener.onFetchCommentFailed();
                 }
             }
 
             @Override
             public void onFailure(@NonNull Call<String> call, @NonNull Throwable t) {
+                Log.e(TAG, "Comments fetch request failed for article=" + article, t);
                 fetchCommentListener.onFetchCommentFailed();
             }
         });
@@ -106,14 +95,18 @@ public class FetchComment {
                                         SortType.Type sortType, String authorName,
                                         FetchMoreCommentListener fetchMoreCommentListener) {
         if (allChildren == null) {
+            Log.w(TAG, "More-comments fetch skipped because children list is null");
             return;
         }
 
         String childrenIds = String.join(",", allChildren);
 
         if (childrenIds.isEmpty()) {
+            Log.w(TAG, "More-comments fetch skipped because children list is empty");
             return;
         }
+
+        Log.d(TAG, "Fetching more comments for post=" + postFullName + ", childCount=" + allChildren.size());
 
         RedditAPI api = retrofit.create(RedditAPI.class);
         GqlAPI gqlAPI = retrofit.create(GqlAPI.class);
@@ -132,46 +125,33 @@ public class FetchComment {
             @Override
             public void onResponse(@NonNull Call<String> call, @NonNull Response<String> response) {
                 if (response.isSuccessful()) {
-                    if (accessToken != null) {
-                        ParseComment.parseMoreCommentGQL(executor, handler, response.body(),
-                                expandChildren, authorName, new ParseComment.ParseCommentListener() {
-                                    @Override
-                                    public void onParseCommentSuccess(ArrayList<Comment> topLevelComments,
-                                                                      ArrayList<Comment> expandedComments,
-                                                                      String parentId, ArrayList<String> moreChildrenIds) {
-                                        fetchMoreCommentListener.onFetchMoreCommentSuccess(
-                                                topLevelComments, expandedComments, moreChildrenIds);
-                                    }
+                    Log.d(TAG, "More-comments fetch succeeded for post=" + postFullName + ", parsing response");
+                    ParseComment.parseMoreComment(executor, handler, response.body(),
+                            expandChildren, new ParseComment.ParseCommentListener() {
+                                @Override
+                                public void onParseCommentSuccess(ArrayList<Comment> topLevelComments,
+                                                                  ArrayList<Comment> expandedComments,
+                                                                  String parentId, ArrayList<String> moreChildrenIds) {
+                                    Log.d(TAG, "More-comments parse succeeded for post=" + postFullName + ", topLevel=" + topLevelComments.size());
+                                    fetchMoreCommentListener.onFetchMoreCommentSuccess(
+                                            topLevelComments,expandedComments, moreChildrenIds);
+                                }
 
-                                    @Override
-                                    public void onParseCommentFailed() {
-                                        fetchMoreCommentListener.onFetchMoreCommentFailed();
-                                    }
-                                });
-                    } else {
-                        ParseComment.parseMoreComment(executor, handler, response.body(),
-                                expandChildren, new ParseComment.ParseCommentListener() {
-                                    @Override
-                                    public void onParseCommentSuccess(ArrayList<Comment> topLevelComments,
-                                                                      ArrayList<Comment> expandedComments,
-                                                                      String parentId, ArrayList<String> moreChildrenIds) {
-                                        fetchMoreCommentListener.onFetchMoreCommentSuccess(
-                                                topLevelComments, expandedComments, moreChildrenIds);
-                                    }
-
-                                    @Override
-                                    public void onParseCommentFailed() {
-                                        fetchMoreCommentListener.onFetchMoreCommentFailed();
-                                    }
-                                });
-                    }
+                                @Override
+                                public void onParseCommentFailed() {
+                                    Log.e(TAG, "More-comments parse failed for post=" + postFullName);
+                                    fetchMoreCommentListener.onFetchMoreCommentFailed();
+                                }
+                            });
                 } else {
+                    Log.w(TAG, "More-comments fetch failed for post=" + postFullName + ", code=" + response.code());
                     fetchMoreCommentListener.onFetchMoreCommentFailed();
                 }
             }
 
             @Override
             public void onFailure(@NonNull Call<String> call, @NonNull Throwable t) {
+                Log.e(TAG, "More-comments request failed for post=" + postFullName, t);
                 fetchMoreCommentListener.onFetchMoreCommentFailed();
             }
         });

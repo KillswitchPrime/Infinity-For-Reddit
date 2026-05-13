@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
@@ -14,6 +15,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.text.Html;
 import android.text.Spanned;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -36,7 +38,6 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.RequestManager;
 import com.bumptech.glide.load.DataSource;
 import com.bumptech.glide.load.engine.GlideException;
-import com.bumptech.glide.load.resource.gif.GifDrawable;
 import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.target.BitmapImageViewTarget;
 import com.bumptech.glide.request.target.CustomTarget;
@@ -48,7 +49,11 @@ import com.github.piasy.biv.loader.ImageLoader;
 import com.github.piasy.biv.loader.glide.GlideImageLoader;
 import com.github.piasy.biv.view.BigImageView;
 import com.github.piasy.biv.view.GlideImageViewFactory;
+import com.github.chrisbanes.photoview.PhotoView;
 import com.google.android.material.bottomappbar.BottomAppBar;
+
+import pl.droidsonroids.gif.GifDrawable;
+import pl.droidsonroids.gif.GifImageView;
 
 import java.io.File;
 import java.io.IOException;
@@ -86,6 +91,7 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 public class ViewImageOrGifActivity extends AppCompatActivity implements SetAsWallpaperCallback, CustomFontReceiver {
+    private static final String TAG = "ViewImageOrGif";
 
     public static final String EXTRA_IMAGE_URL_KEY = "EIUK";
     public static final String EXTRA_GIF_URL_KEY = "EGUK";
@@ -98,6 +104,12 @@ public class ViewImageOrGifActivity extends AppCompatActivity implements SetAsWa
     ProgressBar mProgressBar;
     @BindView(R.id.image_view_view_image_or_gif_activity)
     BigImageView mImageView;
+    @BindView(R.id.gif_image_view_view_image_or_gif_activity)
+    PhotoView mGifImageView;
+    @BindView(R.id.gif_player_view_view_image_or_gif_activity)
+    GifImageView mGifPlayerView;
+    @BindView(R.id.video_view_view_image_or_gif_activity)
+    android.widget.VideoView mVideoView;
     @BindView(R.id.load_image_error_linear_layout_view_image_or_gif_activity)
     LinearLayout mLoadErrorLinearLayout;
     @BindView(R.id.bottom_navigation_view_image_or_gif_activity)
@@ -129,6 +141,7 @@ public class ViewImageOrGifActivity extends AppCompatActivity implements SetAsWa
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.d(TAG, "onCreate: savedInstanceState=" + (savedInstanceState != null));
 
         ((Infinity) getApplication()).getAppComponent().inject(this);
 
@@ -196,6 +209,7 @@ public class ViewImageOrGifActivity extends AppCompatActivity implements SetAsWa
         String postTitle = intent.getStringExtra(EXTRA_POST_TITLE_KEY);
         mSubredditName = intent.getStringExtra(EXTRA_SUBREDDIT_OR_USERNAME_KEY);
         isNsfw = intent.getBooleanExtra(EXTRA_IS_NSFW, false);
+        Log.d(TAG, "Media request url=" + mImageUrl + ", isGif=" + isGif + ", fileName=" + mImageFileName);
 
         boolean useBottomAppBar = mSharedPreferences.getBoolean(SharedPreferencesUtils.USE_BOTTOM_TOOLBAR_IN_MEDIA_VIEWER, false);
         if (postTitle != null) {
@@ -212,7 +226,10 @@ public class ViewImageOrGifActivity extends AppCompatActivity implements SetAsWa
         }
 
         if (useBottomAppBar) {
-            getSupportActionBar().hide();
+            ActionBar supportActionBar = getSupportActionBar();
+            if (supportActionBar != null) {
+                supportActionBar.hide();
+            }
             bottomAppBar.setVisibility(View.VISIBLE);
             downloadImageView.setOnClickListener(view -> {
                 if (isDownloading) {
@@ -232,18 +249,19 @@ public class ViewImageOrGifActivity extends AppCompatActivity implements SetAsWa
             });
         } else {
             ActionBar actionBar = getSupportActionBar();
-            Drawable upArrow = getResources().getDrawable(R.drawable.ic_arrow_back_white_24dp);
-            actionBar.setHomeAsUpIndicator(upArrow);
-            actionBar.setBackgroundDrawable(new ColorDrawable(getResources().getColor(R.color.transparentActionBarAndExoPlayerControllerColor)));
+            if (actionBar != null) {
+                Drawable upArrow = getResources().getDrawable(R.drawable.ic_arrow_back_white_24dp);
+                actionBar.setHomeAsUpIndicator(upArrow);
+                actionBar.setBackgroundDrawable(new ColorDrawable(getResources().getColor(R.color.transparentActionBarAndExoPlayerControllerColor)));
+            }
         }
 
         mLoadErrorLinearLayout.setOnClickListener(view -> {
-            mProgressBar.setVisibility(View.VISIBLE);
             mLoadErrorLinearLayout.setVisibility(View.GONE);
             loadImage();
         });
 
-        mImageView.setOnClickListener(view -> {
+        View.OnClickListener toggleBarsListener = view -> {
             if (isActionBarHidden) {
                 getWindow().getDecorView().setSystemUiVisibility(
                         View.SYSTEM_UI_FLAG_LAYOUT_STABLE
@@ -266,7 +284,11 @@ public class ViewImageOrGifActivity extends AppCompatActivity implements SetAsWa
                     bottomAppBar.setVisibility(View.GONE);
                 }
             }
-        });
+        };
+        mImageView.setOnClickListener(toggleBarsListener);
+        mGifImageView.setOnPhotoTapListener((view, x, y) -> toggleBarsListener.onClick(view));
+        mGifPlayerView.setOnClickListener(toggleBarsListener);
+        mVideoView.setOnClickListener(toggleBarsListener);
 
         mImageView.setImageViewFactory(new GlideImageViewFactory());
 
@@ -334,7 +356,114 @@ public class ViewImageOrGifActivity extends AppCompatActivity implements SetAsWa
     }
 
     private void loadImage() {
-        mImageView.showImage(Uri.parse(mImageUrl));
+        Log.d(TAG, "Loading media. isGif=" + isGif + ", url=" + mImageUrl);
+        if (mImageUrl == null || mImageUrl.isEmpty()) {
+            Log.w(TAG, "Cannot load media because URL is empty");
+            mProgressBar.setVisibility(View.GONE);
+            mLoadErrorLinearLayout.setVisibility(View.VISIBLE);
+            return;
+        }
+
+        mProgressBar.setVisibility(View.VISIBLE);
+        mLoadErrorLinearLayout.setVisibility(View.GONE);
+        mImageView.setVisibility(View.GONE);
+        mGifImageView.setVisibility(View.GONE);
+        mGifPlayerView.setVisibility(View.GONE);
+        mVideoView.setVisibility(View.GONE);
+
+        if (isGif) {
+            // Check if URL is an MP4 — play it with VideoView instead
+            String lowerUrl = mImageUrl.toLowerCase();
+            int qi = lowerUrl.indexOf('?');
+            String cleanUrl = qi >= 0 ? lowerUrl.substring(0, qi) : lowerUrl;
+            if (cleanUrl.endsWith(".mp4")) {
+                Log.d(TAG, "Detected mp4 media in gif viewer path");
+                mVideoView.setVisibility(View.VISIBLE);
+                mVideoView.setVideoURI(Uri.parse(mImageUrl));
+                mVideoView.setOnPreparedListener(mp -> {
+                    mp.setLooping(true);
+                    mProgressBar.setVisibility(View.GONE);
+                    mVideoView.start();
+                    Log.d(TAG, "MP4 media prepared and started");
+                });
+                mVideoView.setOnErrorListener((mp, what, extra) -> {
+                    Log.e(TAG, "MP4 playback error. what=" + what + ", extra=" + extra);
+                    mProgressBar.setVisibility(View.GONE);
+                    mLoadErrorLinearLayout.setVisibility(View.VISIBLE);
+                    return true;
+                });
+                mVideoView.requestFocus();
+            } else {
+                mGifPlayerView.setVisibility(View.VISIBLE);
+                // Use OkHttp directly to download raw GIF bytes — Glide's disk cache
+                // wraps files in its own journal format which GifDrawable cannot parse.
+                new Thread(() -> {
+                    try {
+                        okhttp3.OkHttpClient client = new okhttp3.OkHttpClient();
+                        okhttp3.Request request = new okhttp3.Request.Builder().url(mImageUrl).build();
+                        okhttp3.Response response = client.newCall(request).execute();
+                        if (response.isSuccessful() && response.body() != null) {
+                            Log.d(TAG, "GIF bytes downloaded successfully");
+                            byte[] bytes = response.body().bytes();
+                            GifDrawable gifDrawable = new GifDrawable(bytes);
+                            runOnUiThread(() -> {
+                                mProgressBar.setVisibility(View.GONE);
+                                mGifPlayerView.setImageDrawable(gifDrawable);
+                                gifDrawable.start();
+                            });
+                        } else {
+                            Log.w(TAG, "GIF download failed with code=" + response.code());
+                            runOnUiThread(() -> {
+                                mProgressBar.setVisibility(View.GONE);
+                                mLoadErrorLinearLayout.setVisibility(View.VISIBLE);
+                            });
+                        }
+                    } catch (java.io.IOException e) {
+                        Log.w(TAG, "GIF download failed, falling back to static image", e);
+                        runOnUiThread(() -> {
+                            mProgressBar.setVisibility(View.GONE);
+                            loadAsStaticImage();
+                        });
+                    }
+                }).start();
+            }
+        } else {
+            loadAsStaticImage();
+        }
+    }
+
+    private void loadAsStaticImage() {
+        Log.d(TAG, "Loading media as static image");
+        mGifPlayerView.setVisibility(View.GONE);
+        mGifImageView.setVisibility(View.VISIBLE);
+        mProgressBar.setVisibility(View.VISIBLE);
+        Glide.with(this)
+                .load(mImageUrl)
+                .listener(new com.bumptech.glide.request.RequestListener<Drawable>() {
+                    @Override
+                    public boolean onLoadFailed(@Nullable com.bumptech.glide.load.engine.GlideException e,
+                                                Object model,
+                                                com.bumptech.glide.request.target.Target<Drawable> target,
+                                                boolean isFirstResource) {
+                        Log.e(TAG, "Static image load failed", e);
+                        runOnUiThread(() -> {
+                            mProgressBar.setVisibility(View.GONE);
+                            mLoadErrorLinearLayout.setVisibility(View.VISIBLE);
+                        });
+                        return false;
+                    }
+                    @Override
+                    public boolean onResourceReady(Drawable resource,
+                                                   Object model,
+                                                   com.bumptech.glide.request.target.Target<Drawable> target,
+                                                   com.bumptech.glide.load.DataSource dataSource,
+                                                   boolean isFirstResource) {
+                        Log.d(TAG, "Static image loaded from " + dataSource);
+                        runOnUiThread(() -> mProgressBar.setVisibility(View.GONE));
+                        return false;
+                    }
+                })
+                .into(mGifImageView);
     }
 
     @Override
@@ -397,6 +526,7 @@ public class ViewImageOrGifActivity extends AppCompatActivity implements SetAsWa
 
     private void download() {
         isDownloading = false;
+        Log.d(TAG, "Starting media download. isGif=" + isGif + ", url=" + mImageUrl);
 
         Intent intent = new Intent(this, DownloadMediaService.class);
         intent.putExtra(DownloadMediaService.EXTRA_URL, mImageUrl);
@@ -409,6 +539,7 @@ public class ViewImageOrGifActivity extends AppCompatActivity implements SetAsWa
     }
 
     private void shareImage() {
+        Log.d(TAG, "Sharing image from url=" + mImageUrl);
         glide.asBitmap().load(mImageUrl).into(new CustomTarget<Bitmap>() {
 
             @Override
@@ -432,6 +563,7 @@ public class ViewImageOrGifActivity extends AppCompatActivity implements SetAsWa
 
                                 @Override
                                 public void saveFailed() {
+                                    Log.e(TAG, "Failed to cache image for sharing");
                                     Toast.makeText(ViewImageOrGifActivity.this,
                                             R.string.cannot_save_image, Toast.LENGTH_SHORT).show();
                                 }
@@ -450,15 +582,23 @@ public class ViewImageOrGifActivity extends AppCompatActivity implements SetAsWa
     }
 
     private void shareGif() {
+        Log.d(TAG, "Sharing gif from url=" + mImageUrl);
         Toast.makeText(ViewImageOrGifActivity.this, R.string.save_gif_first, Toast.LENGTH_SHORT).show();
-        glide.asGif().load(mImageUrl).listener(new RequestListener<>() {
+        glide.asGif().load(mImageUrl).listener(new RequestListener<com.bumptech.glide.load.resource.gif.GifDrawable>() {
             @Override
-            public boolean onLoadFailed(@Nullable GlideException e, Object model, Target<GifDrawable> target, boolean isFirstResource) {
+            public boolean onLoadFailed(@Nullable GlideException e, Object model,
+                                        Target<com.bumptech.glide.load.resource.gif.GifDrawable> target,
+                                        boolean isFirstResource) {
+                Log.e(TAG, "Failed to load gif for sharing", e);
                 return false;
             }
 
             @Override
-            public boolean onResourceReady(GifDrawable resource, Object model, Target<GifDrawable> target, DataSource dataSource, boolean isFirstResource) {
+            public boolean onResourceReady(com.bumptech.glide.load.resource.gif.GifDrawable resource,
+                                           Object model,
+                                           Target<com.bumptech.glide.load.resource.gif.GifDrawable> target,
+                                           DataSource dataSource,
+                                           boolean isFirstResource) {
                 if (getExternalCacheDir() != null) {
                     SaveGIFToFile.saveGifToFile(mExecutor, handler, resource, getExternalCacheDir().getPath(), mImageFileName,
                             new SaveGIFToFile.SaveGIFToFileAsyncTaskListener() {
@@ -476,6 +616,7 @@ public class ViewImageOrGifActivity extends AppCompatActivity implements SetAsWa
 
                                 @Override
                                 public void saveFailed() {
+                                    Log.e(TAG, "Failed to cache gif for sharing");
                                     Toast.makeText(ViewImageOrGifActivity.this,
                                             R.string.cannot_save_gif, Toast.LENGTH_SHORT).show();
                                 }
@@ -573,9 +714,39 @@ public class ViewImageOrGifActivity extends AppCompatActivity implements SetAsWa
     }
 
     @Override
+    protected void onPause() {
+        super.onPause();
+        if (mVideoView != null && mVideoView.isPlaying()) {
+            Log.d(TAG, "Pausing video playback");
+            mVideoView.pause();
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (mVideoView != null && mVideoView.getVisibility() == View.VISIBLE) {
+            Log.d(TAG, "Resuming video playback");
+            mVideoView.start();
+        }
+    }
+
+    @Override
     public void onDestroy() {
         super.onDestroy();
+        Log.d(TAG, "onDestroy");
         BigImageViewer.imageLoader().cancelAll();
+    }
+
+    @Override
+    public void onConfigurationChanged(@NonNull Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        Log.i(TAG, "onConfigurationChanged orientation=" + newConfig.orientation);
+        // Re-apply immersive flags after orientation switches to avoid UI-state related crashes.
+        getWindow().getDecorView().setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
     }
 
     @Override

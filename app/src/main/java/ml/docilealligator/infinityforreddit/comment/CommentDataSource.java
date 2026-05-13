@@ -1,6 +1,7 @@
 package ml.docilealligator.infinityforreddit.comment;
 
 import android.os.AsyncTask;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -26,6 +27,7 @@ import retrofit2.Response;
 import retrofit2.Retrofit;
 
 public class CommentDataSource extends PageKeyedDataSource<String, Comment> {
+    private static final String TAG = "CommentDataSource";
 
     private Retrofit retrofit;
     private Locale locale;
@@ -73,6 +75,7 @@ public class CommentDataSource extends PageKeyedDataSource<String, Comment> {
 
     @Override
     public void loadInitial(@NonNull LoadInitialParams<String> params, @NonNull LoadInitialCallback<String, Comment> callback) {
+        Log.d(TAG, "Loading initial comments for user=" + username + ", savedOnly=" + areSavedComments + ", sort=" + sortType.getType());
         initialLoadStateLiveData.postValue(NetworkState.LOADING);
 
         RedditAPI api = retrofit.create(RedditAPI.class);
@@ -94,9 +97,11 @@ public class CommentDataSource extends PageKeyedDataSource<String, Comment> {
             @Override
             public void onResponse(@NonNull Call<String> call, @NonNull Response<String> response) {
                 if (response.isSuccessful()) {
+                    Log.d(TAG, "Initial comment request succeeded for user=" + username + ", parsing");
                     new ParseCommentAsyncTask(response.body(), locale, new ParseCommentAsyncTask.ParseCommentAsyncTaskListener() {
                         @Override
                         public void parseSuccessful(ArrayList<Comment> comments, String after) {
+                            Log.d(TAG, "Initial comments parsed for user=" + username + ", count=" + comments.size() + ", after=" + after);
                             if (comments.size() == 0) {
                                 hasPostLiveData.postValue(false);
                             } else {
@@ -113,16 +118,19 @@ public class CommentDataSource extends PageKeyedDataSource<String, Comment> {
 
                         @Override
                         public void parseFailed() {
+                            Log.e(TAG, "Initial comments parse failed for user=" + username);
                             initialLoadStateLiveData.postValue(new NetworkState(NetworkState.Status.FAILED, "Error parsing data"));
                         }
                     }).execute();
                 } else {
+                    Log.w(TAG, "Initial comment request failed for user=" + username + ", code=" + response.code());
                     initialLoadStateLiveData.postValue(new NetworkState(NetworkState.Status.FAILED, "Error parsing data"));
                 }
             }
 
             @Override
             public void onFailure(@NonNull Call<String> call, @NonNull Throwable t) {
+                Log.e(TAG, "Initial comment request error for user=" + username, t);
                 initialLoadStateLiveData.postValue(new NetworkState(NetworkState.Status.FAILED, "Error parsing data"));
             }
         });
@@ -135,6 +143,7 @@ public class CommentDataSource extends PageKeyedDataSource<String, Comment> {
 
     @Override
     public void loadAfter(@NonNull LoadParams<String> params, @NonNull LoadCallback<String, Comment> callback) {
+        Log.d(TAG, "Loading more comments for user=" + username + ", key=" + params.key);
         this.params = params;
         this.callback = callback;
 
@@ -158,9 +167,11 @@ public class CommentDataSource extends PageKeyedDataSource<String, Comment> {
             @Override
             public void onResponse(@NonNull Call<String> call, @NonNull Response<String> response) {
                 if (response.isSuccessful()) {
+                    Log.d(TAG, "Load-after request succeeded for user=" + username + ", parsing");
                     new ParseCommentAsyncTask(response.body(), locale, new ParseCommentAsyncTask.ParseCommentAsyncTaskListener() {
                         @Override
                         public void parseSuccessful(ArrayList<Comment> comments, String after) {
+                            Log.d(TAG, "Load-after parse succeeded for user=" + username + ", count=" + comments.size() + ", after=" + after);
                             if (after == null || after.equals("") || after.equals("null")) {
                                 callback.onResult(comments, null);
                             } else {
@@ -171,16 +182,19 @@ public class CommentDataSource extends PageKeyedDataSource<String, Comment> {
 
                         @Override
                         public void parseFailed() {
+                            Log.e(TAG, "Load-after parse failed for user=" + username);
                             paginationNetworkStateLiveData.postValue(new NetworkState(NetworkState.Status.FAILED, "Error parsing data"));
                         }
                     }).execute();
                 } else {
+                    Log.w(TAG, "Load-after request failed for user=" + username + ", code=" + response.code());
                     paginationNetworkStateLiveData.postValue(new NetworkState(NetworkState.Status.FAILED, "Error fetching data"));
                 }
             }
 
             @Override
             public void onFailure(@NonNull Call<String> call, @NonNull Throwable t) {
+                Log.e(TAG, "Load-after request error for user=" + username, t);
                 paginationNetworkStateLiveData.postValue(new NetworkState(NetworkState.Status.FAILED, "Error fetching data"));
             }
         });

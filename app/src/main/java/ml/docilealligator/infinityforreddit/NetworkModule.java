@@ -30,6 +30,11 @@ abstract class NetworkModule {
                 .connectTimeout(30, TimeUnit.SECONDS)
                 .readTimeout(30, TimeUnit.SECONDS)
                 .writeTimeout(30, TimeUnit.SECONDS)
+                .addInterceptor(chain -> chain.proceed(
+                        chain.request().newBuilder()
+                                .header(APIUtils.USER_AGENT_KEY, APIUtils.USER_AGENT)
+                                .build()
+                ))
                 .build();
     }
 
@@ -175,12 +180,6 @@ abstract class NetworkModule {
                                            @Named("base") Retrofit retrofit,
                                            ConnectionPool connectionPool) {
         OkHttpClient.Builder okHttpClientBuilder = httpClient.newBuilder()
-                .addInterceptor(chain -> chain.proceed(
-                        chain.request()
-                                .newBuilder()
-                                .header("User-Agent", APIUtils.USER_AGENT)
-                                .build()
-                ))
                 .addInterceptor(accessTokenAuthenticator)
                 .connectionPool(connectionPool);
 

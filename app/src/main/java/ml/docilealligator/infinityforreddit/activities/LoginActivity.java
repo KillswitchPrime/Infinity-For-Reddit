@@ -11,8 +11,10 @@ import android.view.InflateException;
 import android.view.KeyEvent;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.inputmethod.EditorInfo;
-import android.widget.EditText;
+import android.webkit.CookieManager;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -167,7 +169,9 @@ public class LoginActivity extends BaseActivity {
 
             String body = String.format("{\"username\":\"%s\",\"password\":\"%s\"}", username, password);
 
-            Map<String, String> loginHeaders = APIUtils.getHttpBasicAuthHeader();
+        webView.getSettings().setJavaScriptEnabled(true);
+        webView.getSettings().setDomStorageEnabled(true);
+        webView.getSettings().setUserAgentString(APIUtils.LOGIN_WEBVIEW_USER_AGENT);
 
             Locale locale = Locale.US;
             long seconds = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis());
@@ -180,48 +184,33 @@ public class LoginActivity extends BaseActivity {
             String dummyDeviceID = UUID.randomUUID().toString();
             loginHeaders.put("client-vendor-id", dummyDeviceID);
 
-            String result = String.format(locale, "Epoch:%d|User-Agent:%s|Client-Vendor-ID:%s",
-                    Arrays.copyOf(new Object[] { Long.valueOf(seconds), APIUtils.USER_AGENT, dummyDeviceID}, 3));
-            String hmacResult = XHmac.getSignedHexString(result);
-            loginHeaders.put("x-hmac-signed-result",formatting(hmacResult, seconds));
+        webView.loadUrl(url);
+        webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                return shouldOverrideUrlLoading(view, request.getUrl().toString());
+            }
 
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                if (url.contains("&code=") || url.contains("?code=")) {
+                    Uri uri = Uri.parse(url);
+                    String state = uri.getQueryParameter("state");
+                    if (state.equals(APIUtils.STATE)) {
+                        authCode = uri.getQueryParameter("code");
 
-            Call<String> loginCall = api.login(loginHeaders, body);
+                        Map<String, String> params = new HashMap<>();
+                        params.put(APIUtils.GRANT_TYPE_KEY, "authorization_code");
+                        params.put("code", authCode);
+                        params.put("redirect_uri", APIUtils.REDIRECT_URI);
 
-            loginCall.enqueue(new Callback<>() {
-                @Override
-                public void onResponse(Call<String> call, Response<String> response) {
-                    if (response.isSuccessful()) {
-                        try {
-                            JSONObject responseJSON = new JSONObject(response.body());
-                            if (!responseJSON.getBoolean("success")) {
-                                String explanation = responseJSON.getJSONObject("error").getString("explanation");
-                                Toast.makeText(LoginActivity.this, explanation, Toast.LENGTH_LONG).show();
-                                loginButton.setIcon(null);
-                                loginButton.setClickable(true);
-                                return;
-                            }
-                            String sessionCookie = response.headers().get("set-cookie");
-                            String redditSession = sessionCookie.split("; ")[0].trim();
-                            String sessionExpiryDate = sessionCookie.split(";")[4].split(",")[1].trim();
-                            String sessionPattern = "dd-MMM-yyyy HH:mm:ss z";
-                            SimpleDateFormat formatter = new SimpleDateFormat(sessionPattern, new Locale("en", "US"));
-                            String sessionExpiryTimestamp = String.valueOf(formatter.parse(sessionExpiryDate).getTime());
-
-                            mCurrentAccountSharedPreferences.edit()
-                                    .putString(SharedPreferencesUtils.SESSION_COOKIE, redditSession)
-                                    .putString(SharedPreferencesUtils.SESSION_EXPIRY, sessionExpiryTimestamp)
-                                    .apply();
-
-                            SessionHolder.INSTANCE.setCurrentSession(null);
-
-                            Map<String, String> accessTokenHeaders = APIUtils.getHttpBasicAuthHeader();
-                            accessTokenHeaders.put("cookie", redditSession);
-                            Call<String> accessTokenCall = api.getAccessToken(accessTokenHeaders, APIUtils.SCOPE);
-                            accessTokenCall.enqueue(new Callback<>() {
-                                @Override
-                                public void onResponse(Call<String> call, Response<String> response) {
-                                    if (response.isSuccessful()) {
+                        RedditAPI api = mRetrofit.create(RedditAPI.class);
+                        Call<String> accessTokenCall = api.getAccessToken(APIUtils.getHttpBasicAuthHeader(), params);
+                        accessTokenCall.enqueue(new Callback<String>() {
+                            @Override
+                            public void onResponse(@NonNull Call<String> call, @NonNull Response<String> response) {
+                                if (response.isSuccessful()) {
+                                    try {
                                         String accountResponse = response.body();
                                         if (accountResponse == null) {
                                             //Handle error

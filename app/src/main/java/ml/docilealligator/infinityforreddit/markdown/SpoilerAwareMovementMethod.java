@@ -10,13 +10,111 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import io.noties.markwon.image.AsyncDrawableSpan;
 import me.saket.bettermovementmethod.BetterLinkMovementMethod;
 
 /**
  * Extension of {@link BetterLinkMovementMethod} that handles {@link SpoilerSpan}s
+ * and inline image taps (opening them in a full-screen viewer).
  */
 public class SpoilerAwareMovementMethod extends BetterLinkMovementMethod {
+
+    /** Callback for when the user taps an inline image. */
+    public interface OnImageClickListener {
+        void onImageClick(TextView textView, String imageUrl);
+    }
+
     private final RectF touchedLineBounds = new RectF();
+    private OnImageClickListener mOnImageClickListener;
+
+    public SpoilerAwareMovementMethod setOnImageClickListener(@Nullable OnImageClickListener listener) {
+        mOnImageClickListener = listener;
+        return this;
+    }
+
+    // Tracks whether the current touch sequence started on an image span.
+    private String mTouchedImageUrl = null;
+    private float mTouchDownX = 0;
+    private float mTouchDownY = 0;
+    // Slop in pixels beyond which we consider the gesture a scroll, not a tap.
+    private static final int TAP_SLOP = 20;
+
+    @Override
+    public boolean onTouchEvent(@NonNull TextView widget, @NonNull Spannable buffer, @NonNull MotionEvent event) {
+        if (mOnImageClickListener != null) {
+            final int action = event.getAction();
+            if (action == MotionEvent.ACTION_DOWN) {
+                String imageUrl = findImageUrlUnderTouch(widget, buffer, event);
+                mTouchedImageUrl = imageUrl;
+                mTouchDownX = event.getX();
+                mTouchDownY = event.getY();
+                if (imageUrl != null) {
+                    widget.getParent().requestDisallowInterceptTouchEvent(true);
+                    return true;
+                }
+            } else if (action == MotionEvent.ACTION_MOVE) {
+                if (mTouchedImageUrl != null) {
+                    float dx = Math.abs(event.getX() - mTouchDownX);
+                    float dy = Math.abs(event.getY() - mTouchDownY);
+                    if (dx > TAP_SLOP || dy > TAP_SLOP) {
+                        // Finger moved — release intercept lock so RecyclerView can scroll.
+                        mTouchedImageUrl = null;
+                        widget.getParent().requestDisallowInterceptTouchEvent(false);
+                    }
+                }
+            } else if (action == MotionEvent.ACTION_UP) {
+                String downUrl = mTouchedImageUrl;
+                mTouchedImageUrl = null;
+                if (downUrl != null) {
+                    float dx = Math.abs(event.getX() - mTouchDownX);
+                    float dy = Math.abs(event.getY() - mTouchDownY);
+                    if (dx <= TAP_SLOP && dy <= TAP_SLOP) {
+                        // Confirmed tap (not a scroll) on an image span.
+                        widget.getParent().requestDisallowInterceptTouchEvent(false);
+                        mOnImageClickListener.onImageClick(widget, downUrl);
+                        return true;
+                    }
+                }
+            } else if (action == MotionEvent.ACTION_CANCEL) {
+                mTouchedImageUrl = null;
+                if (widget.getParent() != null) {
+                    widget.getParent().requestDisallowInterceptTouchEvent(false);
+                }
+            }
+        }
+        return super.onTouchEvent(widget, buffer, event);
+    }
+
+    /** Returns the image URL under the touch point, or null if no image span is there. */
+    @Nullable
+    private String findImageUrlUnderTouch(@NonNull TextView widget, @NonNull Spannable buffer,
+                                          @NonNull MotionEvent event) {
+        int touchX = (int) event.getX() - widget.getTotalPaddingLeft() + widget.getScrollX();
+        int touchY = (int) event.getY() - widget.getTotalPaddingTop() + widget.getScrollY();
+
+        Layout layout = widget.getLayout();
+        if (layout == null) return null;
+
+        int line = layout.getLineForVertical(touchY);
+        int lineTop = layout.getLineTop(line);
+        int lineBottom = layout.getLineBottom(line);
+        // Reject touches outside the line vertically
+        if (touchY < lineTop || touchY > lineBottom) return null;
+
+        int offset = layout.getOffsetForHorizontal(line, touchX);
+        // Search the full span range for any AsyncDrawableSpan that covers this offset
+        AsyncDrawableSpan[] imageSpans = buffer.getSpans(0, buffer.length(), AsyncDrawableSpan.class);
+        if (imageSpans == null) return null;
+        for (AsyncDrawableSpan span : imageSpans) {
+            int spanStart = buffer.getSpanStart(span);
+            int spanEnd = buffer.getSpanEnd(span);
+            if (offset >= spanStart && offset <= spanEnd) {
+                String url = span.getDrawable().getDestination();
+                if (url != null && !url.isEmpty()) return url;
+            }
+        }
+        return null;
+    }
 
     @Override
     protected ClickableSpan findClickableSpanUnderTouch(TextView textView, Spannable text, MotionEvent event) {

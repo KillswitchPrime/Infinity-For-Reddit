@@ -1,5 +1,8 @@
 package ml.docilealligator.infinityforreddit.subreddit;
 
+import android.text.TextUtils;
+import android.util.Log;
+
 import androidx.annotation.NonNull;
 
 import java.util.ArrayList;
@@ -19,20 +22,23 @@ import retrofit2.Response;
 import retrofit2.Retrofit;
 
 public class FetchSubredditData {
+    private static final String TAG = "FetchSubredditData";
+
     public static void fetchSubredditData(Retrofit oauthRetrofit, Retrofit retrofit, String subredditName, String accessToken, final FetchSubredditDataListener fetchSubredditDataListener) {
 
         Call<String> subredditData;
-        if (accessToken == null) {
-            RedditAPI api = retrofit.create(RedditAPI.class);
+        if (oauthRetrofit == null || TextUtils.isEmpty(accessToken)) {
+            Log.d(TAG, "fetchSubredditData: using no-auth for r/" + subredditName);
             subredditData = api.getSubredditData(subredditName);
         } else {
-            GqlAPI oauthApi = oauthRetrofit.create(GqlAPI.class);
-            Map<String, String> header = APIUtils.getOAuthHeader(accessToken);
-            subredditData = oauthApi.getSubredditData(header, GqlRequestBody.subredditDataBody(subredditName));
+            Log.d(TAG, "fetchSubredditData: using OAuth for r/" + subredditName);
+            RedditAPI oauthApi = oauthRetrofit.create(RedditAPI.class);
+            subredditData = oauthApi.getSubredditDataOauth(subredditName, APIUtils.getOAuthHeader(accessToken));
         }
         subredditData.enqueue(new Callback<>() {
             @Override
             public void onResponse(@NonNull Call<String> call, @NonNull Response<String> response) {
+                Log.d(TAG, "onResponse: code=" + response.code() + " for r/" + subredditName);
                 if (response.isSuccessful()) {
                     ParseSubredditData.parseSubredditData(response.body(), new ParseSubredditData.ParseSubredditDataListener() {
                         @Override
@@ -42,16 +48,24 @@ public class FetchSubredditData {
 
                         @Override
                         public void onParseSubredditDataFail() {
+                            Log.e(TAG, "onParseSubredditDataFail for r/" + subredditName);
                             fetchSubredditDataListener.onFetchSubredditDataFail(false);
                         }
                     });
                 } else {
+                    try {
+                        String errorBody = response.errorBody() != null ? response.errorBody().string() : "null";
+                        Log.e(TAG, "HTTP error " + response.code() + " for r/" + subredditName + ": " + errorBody);
+                    } catch (Exception e) {
+                        Log.e(TAG, "HTTP error " + response.code() + " for r/" + subredditName);
+                    }
                     fetchSubredditDataListener.onFetchSubredditDataFail(response.code() == 403);
                 }
             }
 
             @Override
             public void onFailure(@NonNull Call<String> call, @NonNull Throwable t) {
+                Log.e(TAG, "onFailure for r/" + subredditName, t);
                 fetchSubredditDataListener.onFetchSubredditDataFail(false);
             }
         });
