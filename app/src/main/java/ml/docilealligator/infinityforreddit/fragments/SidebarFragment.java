@@ -65,6 +65,9 @@ public class SidebarFragment extends Fragment {
     @Named("oauth")
     Retrofit mOauthRetrofit;
     @Inject
+    @Named("gql")
+    Retrofit mGQLRetrofit;
+    @Inject
     RedditDataRoomDatabase mRedditDataRoomDatabase;
     @Inject
     CustomThemeWrapper mCustomThemeWrapper;
@@ -190,7 +193,7 @@ public class SidebarFragment extends Fragment {
 
     public void fetchSubredditData() {
         swipeRefreshLayout.setRefreshing(true);
-        FetchSubredditData.fetchSubredditData(mOauthRetrofit, mRetrofit, subredditName, mAccessToken, new FetchSubredditData.FetchSubredditDataListener() {
+        FetchSubredditData.fetchSubredditData(mGQLRetrofit, mRetrofit, subredditName, mAccessToken, new FetchSubredditData.FetchSubredditDataListener() {
             @Override
             public void onFetchSubredditDataSuccess(SubredditData subredditData, int nCurrentOnlineSubscribers) {
                 swipeRefreshLayout.setRefreshing(false);

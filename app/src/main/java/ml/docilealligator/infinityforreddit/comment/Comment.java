@@ -338,6 +338,15 @@ public class Comment implements Parcelable {
         assertChildrenDepth();
     }
 
+    public void addChildEnd(Comment comment) {
+        if (children == null) {
+            children = new ArrayList<>();
+        }
+        children.add(comment);
+        childCount++;
+        assertChildrenDepth();
+    }
+
     public void addChild(Comment comment) {
         addChild(comment, 0);
         childCount++;
@@ -376,6 +385,13 @@ public class Comment implements Parcelable {
 
     public void removeMoreChildrenIds() {
         moreChildrenIds.clear();
+    }
+
+    public void addMoreChildrenId(String id) {
+        if(this.moreChildrenIds == null) {
+            this.moreChildrenIds = new ArrayList<>();
+        }
+        this.moreChildrenIds.add(id);
     }
 
     public int getPlaceholderType() {

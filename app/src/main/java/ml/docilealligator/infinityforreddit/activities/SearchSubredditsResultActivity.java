@@ -60,6 +60,9 @@ public class SearchSubredditsResultActivity extends BaseActivity implements Acti
     @Named("current_account")
     SharedPreferences mCurrentAccountSharedPreferences;
     @Inject
+    @Named("anonymous_account")
+    SharedPreferences mAnonymousAccountSharedPreferences;
+    @Inject
     CustomThemeWrapper mCustomThemeWrapper;
     private String mAccessToken;
     private String mAccountName;
@@ -106,6 +109,9 @@ public class SearchSubredditsResultActivity extends BaseActivity implements Acti
         String query = getIntent().getExtras().getString(EXTRA_QUERY);
 
         mAccessToken = mCurrentAccountSharedPreferences.getString(SharedPreferencesUtils.ACCESS_TOKEN, null);
+        if (mAccessToken == null){
+            mAccessToken = mAnonymousAccountSharedPreferences.getString(SharedPreferencesUtils.ACCESS_TOKEN, null);
+        }
         mAccountName = mCurrentAccountSharedPreferences.getString(SharedPreferencesUtils.ACCOUNT_NAME, null);
 
         if (savedInstanceState == null) {

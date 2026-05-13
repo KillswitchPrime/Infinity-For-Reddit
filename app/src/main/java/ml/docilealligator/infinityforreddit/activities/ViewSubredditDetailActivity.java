@@ -9,7 +9,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.text.util.Linkify;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -65,13 +64,6 @@ import io.noties.markwon.Markwon;
 import io.noties.markwon.MarkwonConfiguration;
 import io.noties.markwon.MarkwonPlugin;
 import io.noties.markwon.core.MarkwonTheme;
-import io.noties.markwon.ext.strikethrough.StrikethroughPlugin;
-import io.noties.markwon.inlineparser.BangInlineProcessor;
-import io.noties.markwon.inlineparser.HtmlInlineProcessor;
-import io.noties.markwon.inlineparser.MarkwonInlineParserPlugin;
-import io.noties.markwon.linkify.LinkifyPlugin;
-import io.noties.markwon.movement.MovementMethodPlugin;
-import io.noties.markwon.recycler.table.TableEntryPlugin;
 import jp.wasabeef.glide.transformations.RoundedCornersTransformation;
 import me.saket.bettermovementmethod.BetterLinkMovementMethod;
 import ml.docilealligator.infinityforreddit.ActivityToolbarInterface;
@@ -100,17 +92,12 @@ import ml.docilealligator.infinityforreddit.bottomsheetfragments.UrlMenuBottomSh
 import ml.docilealligator.infinityforreddit.customtheme.CustomThemeWrapper;
 import ml.docilealligator.infinityforreddit.customviews.NavigationWrapper;
 import ml.docilealligator.infinityforreddit.customviews.slidr.Slidr;
-import ml.docilealligator.infinityforreddit.customviews.slidr.widget.SliderPanel;
 import ml.docilealligator.infinityforreddit.events.ChangeNSFWEvent;
 import ml.docilealligator.infinityforreddit.events.GoBackToMainPageEvent;
 import ml.docilealligator.infinityforreddit.events.SwitchAccountEvent;
 import ml.docilealligator.infinityforreddit.fragments.PostFragment;
 import ml.docilealligator.infinityforreddit.fragments.SidebarFragment;
 import ml.docilealligator.infinityforreddit.markdown.MarkdownUtils;
-import ml.docilealligator.infinityforreddit.markdown.RedditHeadingPlugin;
-import ml.docilealligator.infinityforreddit.markdown.SpoilerAwareMovementMethod;
-import ml.docilealligator.infinityforreddit.markdown.SpoilerParserPlugin;
-import ml.docilealligator.infinityforreddit.markdown.SuperscriptPlugin;
 import ml.docilealligator.infinityforreddit.message.ReadMessage;
 import ml.docilealligator.infinityforreddit.multireddit.MultiReddit;
 import ml.docilealligator.infinityforreddit.post.Post;
@@ -185,6 +172,9 @@ public class ViewSubredditDetailActivity extends BaseActivity implements SortTyp
     @Named("oauth")
     Retrofit mOauthRetrofit;
     @Inject
+    @Named("gql")
+    Retrofit mGQLRetrofit;
+    @Inject
     RedditDataRoomDatabase mRedditDataRoomDatabase;
     @Inject
     @Named("default")
@@ -205,6 +195,9 @@ public class ViewSubredditDetailActivity extends BaseActivity implements SortTyp
     @Named("current_account")
     SharedPreferences mCurrentAccountSharedPreferences;
     @Inject
+    @Named("anonymous_account")
+    SharedPreferences mAnonymousAccountSharedPreferences;
+    @Inject
     CustomThemeWrapper mCustomThemeWrapper;
     @Inject
     Executor mExecutor;
@@ -215,6 +208,7 @@ public class ViewSubredditDetailActivity extends BaseActivity implements SortTyp
     private String mAccessToken;
     private String mAccountName;
     private String subredditName;
+    private String subredditId;
     private String description;
     private boolean mFetchSubredditInfoSuccess = false;
     private int mNCurrentOnlineSubscribers = 0;
@@ -348,6 +342,9 @@ public class ViewSubredditDetailActivity extends BaseActivity implements SortTyp
         fragmentManager = getSupportFragmentManager();
 
         mAccessToken = mCurrentAccountSharedPreferences.getString(SharedPreferencesUtils.ACCESS_TOKEN, null);
+        if (mAccessToken == null){
+            mAccessToken = mAnonymousAccountSharedPreferences.getString(SharedPreferencesUtils.ACCESS_TOKEN, null);
+        }
         mAccountName = mCurrentAccountSharedPreferences.getString(SharedPreferencesUtils.ACCOUNT_NAME, null);
 
         if (savedInstanceState == null) {
@@ -415,6 +412,8 @@ public class ViewSubredditDetailActivity extends BaseActivity implements SortTyp
         mSubredditViewModel.getSubredditLiveData().observe(this, subredditData -> {
             if (subredditData != null) {
                 isNsfwSubreddit = subredditData.isNSFW();
+
+                subredditId = subredditData.getId();
 
                 if (subredditData.getBannerUrl().equals("")) {
                     iconGifImageView.setOnClickListener(view -> {
@@ -573,7 +572,7 @@ public class ViewSubredditDetailActivity extends BaseActivity implements SortTyp
 
     private void fetchSubredditData() {
         if (!mFetchSubredditInfoSuccess) {
-            FetchSubredditData.fetchSubredditData(mOauthRetrofit, mRetrofit, subredditName, mAccessToken, new FetchSubredditData.FetchSubredditDataListener() {
+            FetchSubredditData.fetchSubredditData(mGQLRetrofit, mRetrofit, subredditName, mAccessToken, new FetchSubredditData.FetchSubredditDataListener() {
                 @Override
                 public void onFetchSubredditDataSuccess(SubredditData subredditData, int nCurrentOnlineSubscribers) {
                     mNCurrentOnlineSubscribers = nCurrentOnlineSubscribers;
@@ -953,12 +952,12 @@ public class ViewSubredditDetailActivity extends BaseActivity implements SortTyp
         navigationWrapper.floatingActionButton.setVisibility(hideFab ? View.GONE : View.VISIBLE);
 
         subscribeSubredditChip.setOnClickListener(view -> {
-            if (mAccessToken == null) {
+            if (mAccountName == null) {
                 if (subscriptionReady) {
                     subscriptionReady = false;
                     if (getResources().getString(R.string.subscribe).contentEquals(subscribeSubredditChip.getText())) {
-                        SubredditSubscription.anonymousSubscribeToSubreddit(mExecutor, new Handler(),
-                                mRetrofit, mRedditDataRoomDatabase, subredditName,
+                        SubredditSubscription.anonymousSubscribeToSubreddit(mExecutor, new Handler(), mAccessToken,
+                                mGQLRetrofit, mRedditDataRoomDatabase, subredditName,
                                 new SubredditSubscription.SubredditSubscriptionListener() {
                                     @Override
                                     public void onSubredditSubscriptionSuccess() {
@@ -998,8 +997,8 @@ public class ViewSubredditDetailActivity extends BaseActivity implements SortTyp
                 if (subscriptionReady) {
                     subscriptionReady = false;
                     if (getResources().getString(R.string.subscribe).contentEquals(subscribeSubredditChip.getText())) {
-                        SubredditSubscription.subscribeToSubreddit(mExecutor, new Handler(), mOauthRetrofit,
-                                mRetrofit, mAccessToken, subredditName, mAccountName, mRedditDataRoomDatabase,
+                        SubredditSubscription.subscribeToSubreddit(mExecutor, new Handler(), mGQLRetrofit,
+                                mRetrofit, mAccessToken, subredditName, subredditId, mAccountName, mRedditDataRoomDatabase,
                                 new SubredditSubscription.SubredditSubscriptionListener() {
                                     @Override
                                     public void onSubredditSubscriptionSuccess() {
@@ -1016,8 +1015,8 @@ public class ViewSubredditDetailActivity extends BaseActivity implements SortTyp
                                     }
                                 });
                     } else {
-                        SubredditSubscription.unsubscribeToSubreddit(mExecutor, new Handler(), mOauthRetrofit,
-                                mAccessToken, subredditName, mAccountName, mRedditDataRoomDatabase,
+                        SubredditSubscription.unsubscribeToSubreddit(mExecutor, new Handler(), mGQLRetrofit,
+                                mAccessToken, subredditName, subredditId, mAccountName, mRedditDataRoomDatabase,
                                 new SubredditSubscription.SubredditSubscriptionListener() {
                                     @Override
                                     public void onSubredditSubscriptionSuccess() {
@@ -1575,7 +1574,12 @@ public class ViewSubredditDetailActivity extends BaseActivity implements SortTyp
                 Bundle bundle = new Bundle();
                 bundle.putString(PostFragment.EXTRA_NAME, subredditName);
                 bundle.putInt(PostFragment.EXTRA_POST_TYPE, PostPagingSource.TYPE_SUBREDDIT);
-                bundle.putString(PostFragment.EXTRA_ACCESS_TOKEN, mAccessToken);
+                if (mAccountName == null) {
+                    bundle.putString(PostFragment.EXTRA_ACCESS_TOKEN, null);
+                    bundle.putString(PostFragment.ANON_ACCESS_TOKEN, mAccessToken);
+                }else{
+                    bundle.putString(PostFragment.EXTRA_ACCESS_TOKEN, mAccessToken);
+                }
                 bundle.putString(PostFragment.EXTRA_ACCOUNT_NAME, mAccountName);
                 fragment.setArguments(bundle);
                 return fragment;

@@ -84,6 +84,9 @@ public class CommentsListingFragment extends Fragment implements FragmentCommuni
     @Named("oauth")
     Retrofit mOauthRetrofit;
     @Inject
+    @Named("gql")
+    Retrofit mGqlRetrofit;
+    @Inject
     RedditDataRoomDatabase mRedditDataRoomDatabase;
     @Inject
     @Named("default")
@@ -262,7 +265,7 @@ public class CommentsListingFragment extends Fragment implements FragmentCommuni
             mLinearLayoutManager = new LinearLayoutManagerBugFixed(mActivity);
             mCommentRecyclerView.setLayoutManager(mLinearLayoutManager);
 
-            mAdapter = new CommentsListingRecyclerViewAdapter(mActivity, mOauthRetrofit, customThemeWrapper,
+            mAdapter = new CommentsListingRecyclerViewAdapter(mActivity, mOauthRetrofit, mGqlRetrofit, customThemeWrapper,
                     getResources().getConfiguration().locale, mSharedPreferences,
                     getArguments().getString(EXTRA_ACCESS_TOKEN), getArguments().getString(EXTRA_ACCOUNT_NAME),
                     () -> mCommentViewModel.retryLoadingMore());

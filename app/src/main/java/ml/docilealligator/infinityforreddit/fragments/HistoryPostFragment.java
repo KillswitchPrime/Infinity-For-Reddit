@@ -171,6 +171,9 @@ public class HistoryPostFragment extends Fragment implements FragmentCommunicato
     @Named("redgifs")
     Retrofit mRedgifsRetrofit;
     @Inject
+    @Named("gql")
+    Retrofit mGqlRetrofit;
+    @Inject
     Provider<StreamableAPI> mStreamableApiProvider;
     @Inject
     RedditDataRoomDatabase mRedditDataRoomDatabase;
@@ -381,7 +384,7 @@ public class HistoryPostFragment extends Fragment implements FragmentCommunicato
             postLayout = mPostLayoutSharedPreferences.getInt(SharedPreferencesUtils.HISTORY_POST_LAYOUT_READ_POST, defaultPostLayout);
 
             mAdapter = new HistoryPostRecyclerViewAdapter(activity, this, mExecutor, mOauthRetrofit, mGfycatRetrofit,
-                    mRedgifsRetrofit, mStreamableApiProvider, mCustomThemeWrapper, locale,
+                    mRedgifsRetrofit, mGqlRetrofit, mStreamableApiProvider, mCustomThemeWrapper, locale,
                     accessToken, accountName, postType, postLayout, true,
                     mSharedPreferences, mCurrentAccountSharedPreferences, mNsfwAndSpoilerSharedPreferences,
                     mExoCreator, new HistoryPostRecyclerViewAdapter.Callback() {
@@ -933,7 +936,7 @@ public class HistoryPostFragment extends Fragment implements FragmentCommunicato
         } else {
             if (isSubreddit) {
                 LoadSubredditIcon.loadSubredditIcon(mExecutor, new Handler(), mRedditDataRoomDatabase,
-                        subredditOrUserName, accessToken, mOauthRetrofit, mRetrofit,
+                        subredditOrUserName, accessToken, mOauthRetrofit, mRetrofit, mGqlRetrofit,
                         iconImageUrl -> {
                             subredditOrUserIcons.put(subredditOrUserName, iconImageUrl);
                             loadIconListener.loadIconSuccess(subredditOrUserName, iconImageUrl);

@@ -3,6 +3,7 @@ package ml.docilealligator.infinityforreddit.utils;
 import android.util.Base64;
 
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import ml.docilealligator.infinityforreddit.BuildConfig;
@@ -26,6 +27,8 @@ public class APIUtils {
     public static final String REVEDDIT_API_BASE_URI = "https://api.reveddit.com/";
     public static final String STRAPI_BASE_URI = "https://strapi.reddit.com";
     public static final String STREAMABLE_API_BASE_URI = "https://api.streamable.com";
+    public static final String LOGIN_BASE_URL = "https://accounts.reddit.com";
+    public static final String GQL_BASE_URL = "https://gql-fed.reddit.com";
 
     public static final String CLIENT_ID_KEY = "client_id";
     public static final String CLIENT_SECRET_KEY = "client_secret";
@@ -45,6 +48,10 @@ public class APIUtils {
     public static final String SCOPE_KEY = "scope";
     public static final String SCOPE = "identity edit flair history modconfig modflair modlog modposts modwiki mysubreddits privatemessages read report save submit subscribe vote wikiedit wikiread creddits modcontributors modmail modothers livemanage account modself";
     public static final String ACCESS_TOKEN_KEY = "access_token";
+    public static final String REDGIFS_ACCESS_TOKEN_KEY = "token";
+    public static final String SIGNING_KEY = "8c7abaa5f905f70400c81bf3a1a101e75f7210104b1991f0cd5240aa80c4d99d";
+    public static final String EXPIRY_TS_KEY = "expiry_ts";
+    public static final String SCOPE = "{\"scopes\":[\"*\",\"email\",\"pii\"]}";
 
     public static final String AUTHORIZATION_KEY = "Authorization";
     public static final String AUTHORIZATION_BASE = "bearer ";
@@ -55,9 +62,7 @@ public class APIUtils {
     public static final String LOGIN_WEBVIEW_USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
     public static final String GRANT_TYPE_KEY = "grant_type";
-    public static final String GRANT_TYPE_REFRESH_TOKEN = "refresh_token";
     public static final String GRANT_TYPE_CLIENT_CREDENTIALS = "client_credentials";
-    public static final String REFRESH_TOKEN_KEY = "refresh_token";
 
     public static final String DIR_KEY = "dir";
     public static final String ID_KEY = "id";
@@ -74,6 +79,8 @@ public class APIUtils {
     public static final String API_TYPE_JSON = "json";
     public static final String RETURN_RTJSON_KEY = "return_rtjson";
     public static final String TEXT_KEY = "text";
+    public static final String RICHTEXT_JSON_KEY = "richtext_json";
+
     public static final String URL_KEY = "url";
     public static final String VIDEO_POSTER_URL_KEY = "video_poster_url";
     public static final String THING_ID_KEY = "thing_id";
@@ -119,6 +126,12 @@ public class APIUtils {
     public static final String REVEDDIT_ORIGIN = "https://www.reveddit.com";
     public static final String REFERER_KEY = "Referer";
     public static final String REVEDDIT_REFERER = "https://www.reveddit.com/";
+    public static final String ACTION_SUB = "SUBSCRIBED";
+    public static final String ACTION_UNSUB = "NONE";
+
+    public static final String VOTESTATE_UP = "UP";
+    public static final String VOTESTATE_NONE = "NONE";
+    public static final String VOTESTATE_DOWN = "DOWN";
 
     /*public static final String HOST_KEY = "Host";
     public static final String REDGIFS_HOST = "api.redgifs.com";
@@ -126,17 +139,33 @@ public class APIUtils {
     public static final String */
 
     public static Map<String, String> getHttpBasicAuthHeader() {
+        double randomRate = 25 + Math.random()*5;
         Map<String, String> params = new HashMap<>();
         String credentials = String.format("%s:%s", APIUtils.CLIENT_ID, "");
         String auth = "Basic " + Base64.encodeToString(credentials.getBytes(), Base64.NO_WRAP);
         params.put(APIUtils.AUTHORIZATION_KEY, auth);
+        //params.put("client-vendor-id", APIUtils.CLIENT_VENDOR_ID);
+        params.put(APIUtils.USER_AGENT_KEY, APIUtils.USER_AGENT);
+        params.put("x-reddit-compression", "1");
+        params.put("x-reddit-qos", "down-rate-mbps=" + String.format(Locale.US,"%,.3f", randomRate));
+        params.put("x-reddit-retry", "algo=no-retries");
+        params.put("x-reddit-media-codecs",
+                 "available-codecs=video/avc, video/hevc, video/x-vnd.on2.vp9");
         return params;
     }
 
     public static Map<String, String> getOAuthHeader(String accessToken) {
+        double randomRate = 25 + Math.random()*5;
         Map<String, String> params = new HashMap<>();
         params.put(APIUtils.AUTHORIZATION_KEY, APIUtils.AUTHORIZATION_BASE + accessToken);
         params.put(APIUtils.USER_AGENT_KEY, APIUtils.USER_AGENT);
+        //params.put("client-vendor-id", APIUtils.CLIENT_VENDOR_ID);
+        //params.put("x-reddit-device-id", APIUtils.CLIENT_VENDOR_ID);
+        params.put("x-reddit-compression", "1");
+        params.put("x-reddit-qos", "down-rate-mbps=" + String.format(Locale.US,"%,.3f", randomRate));
+        params.put("x-reddit-retry", "algo=no-retries");
+        params.put("x-reddit-media-codecs",
+                "available-codecs=video/avc, video/hevc, video/x-vnd.on2.vp9");
         return params;
     }
 

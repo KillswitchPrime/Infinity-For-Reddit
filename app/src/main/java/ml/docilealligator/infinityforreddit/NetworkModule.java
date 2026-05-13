@@ -57,9 +57,24 @@ abstract class NetworkModule {
     }
 
     @Provides
+    @Named("anonymous")
+    @Singleton
+    static OkHttpClient provideAnonymousAuthOkHttpClient(@Named("base") OkHttpClient httpClient,
+                                                         @Named("login") Retrofit retrofit,
+                                                         @Named("anonymous_account") SharedPreferences anonymousAccountSharedPreferences) {
+        return httpClient.newBuilder()
+                .addInterceptor(new AnonymousAccessTokenInterceptor(retrofit, anonymousAccountSharedPreferences))
+                .build();
+    }
+
+    @Provides
     @Named("no_oauth")
-    static Retrofit provideRetrofit(@Named("base") Retrofit retrofit) {
-        return retrofit;
+    static Retrofit provideRetrofit(@Named("base") Retrofit retrofit,
+                                    @Named("anonymous") OkHttpClient okHttpClient) {
+        return retrofit.newBuilder()
+                .baseUrl(APIUtils.OAUTH_API_BASE_URI)
+                .client(okHttpClient)
+                .build();
     }
 
     @Provides
@@ -68,6 +83,26 @@ abstract class NetworkModule {
                                          @Named("default") OkHttpClient okHttpClient) {
         return retrofit.newBuilder()
                 .baseUrl(APIUtils.OAUTH_API_BASE_URI)
+                .client(okHttpClient)
+                .build();
+    }
+
+    @Provides
+    @Named("login")
+    static Retrofit provideLoginRetrofit(@Named("base") Retrofit retrofit,
+                                         @Named("default") OkHttpClient okHttpClient) {
+        return retrofit.newBuilder()
+                .baseUrl(APIUtils.LOGIN_BASE_URL)
+                .client(okHttpClient)
+                .build();
+    }
+
+    @Provides
+    @Named("gql")
+    static Retrofit provideGqlRetrofit(@Named("base") Retrofit retrofit,
+                                         @Named("default") OkHttpClient okHttpClient) {
+        return retrofit.newBuilder()
+                .baseUrl(APIUtils.GQL_BASE_URL)
                 .client(okHttpClient)
                 .build();
     }
@@ -133,8 +168,8 @@ abstract class NetworkModule {
 
     @Provides
     @Named("RedgifsAccessTokenAuthenticator")
-    static Interceptor redgifsAccessTokenAuthenticator(@Named("current_account") SharedPreferences currentAccountSharedPreferences) {
-        return new RedgifsAccessTokenAuthenticator(currentAccountSharedPreferences);
+    static Interceptor redgifsAccessTokenAuthenticator(@Named("default") SharedPreferences defaultSharedPreferences) {
+        return new RedgifsAccessTokenAuthenticator(defaultSharedPreferences);
     }
 
     @Provides

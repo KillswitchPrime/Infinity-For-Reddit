@@ -47,10 +47,11 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import io.noties.markwon.core.spans.CustomTypefaceSpan;
@@ -78,6 +79,7 @@ public final class Utils {
             Pattern.compile("!\\[gif]\\(emote\\|\\w+\\|\\w+\\)"),
     };
 
+
     public static String modifyMarkdown(String markdown) {
         String regexed = REGEX_PATTERNS[0].matcher(markdown).replaceAll("[$0](https://www.reddit.com$0)");
         regexed = REGEX_PATTERNS[1].matcher(regexed).replaceAll("[$0](https://www.reddit.com/$0)");
@@ -86,36 +88,40 @@ public final class Utils {
         return regexed;
     }
 
-    public static String parseInlineGifInComments(String markdown) {
-        StringBuilder markdownStringBuilder = new StringBuilder(markdown);
-        Pattern inlineGifPattern = REGEX_PATTERNS[3];
-        Matcher matcher = inlineGifPattern.matcher(markdownStringBuilder);
-        while (matcher.find()) {
-            markdownStringBuilder.replace(matcher.start(), matcher.end(), "[gif](https://i.giphy.com/media/" + markdownStringBuilder.substring(matcher.start() + "![gif](giphy|".length(), matcher.end() - 1) + "/giphy.mp4)");
-            matcher = inlineGifPattern.matcher(markdownStringBuilder);
+    public static String inlineImages(String body, JSONObject mediaMetadata) {
+        String value = body;
+        if(mediaMetadata.length() == 0){
+            return body;
         }
+        JSONArray names = mediaMetadata.names();
+        try{
+            for(int i=0; i<names.length(); i++){
+                String id = names.getString(i);
+                JSONObject metadata = mediaMetadata.getJSONObject(id);
+                String status = metadata.getString("status");
+                if(!status.equals("valid")){
+                    continue;
+                }
 
-        Pattern inlineGifPattern2 = REGEX_PATTERNS[4];
-        Matcher matcher2 = inlineGifPattern2.matcher(markdownStringBuilder);
-        while (matcher2.find()) {
-            markdownStringBuilder.replace(matcher2.start(), matcher2.end(), "[gif](https://i.giphy.com/media/" + markdownStringBuilder.substring(matcher2.start() + "![gif](giphy|".length(), matcher2.end() - "|downsized\\)".length() + 1) + "/giphy.mp4)");
-            matcher2 = inlineGifPattern2.matcher(markdownStringBuilder);
+                String mimeType = metadata.getString("m");
+                if(!(mimeType.equals("image/jpeg") || mimeType.equals("image/png"))){
+                    continue;
+                }
+
+                JSONArray previews = metadata.getJSONArray("p");
+                int length = previews.length();
+                int index = length/2;
+                JSONObject largestPreview = previews.getJSONObject(index);
+                String url = largestPreview.getString("u");
+                value = value.replace(id, url);
+            }
+        }catch (JSONException e){
+
         }
-
-        Pattern inlineGifPattern3 = REGEX_PATTERNS[5];
-        Matcher matcher3 = inlineGifPattern3.matcher(markdownStringBuilder);
-        while (matcher3.find()) {
-            markdownStringBuilder.replace(matcher3.start(), matcher3.end(),
-                    "[gif](https://reddit-meta-production.s3.amazonaws.com/public/fortnitebr/emotes/snoomoji_emotes/"
-                            + markdownStringBuilder.substring(
-                            matcher3.start() + "![gif](emote|".length(), matcher3.end() - 1).replace('|', '/') + ".gif)");
-            matcher3 = inlineGifPattern3.matcher(markdownStringBuilder);
-        }
-
-        return markdownStringBuilder.toString();
+        return value;
     }
 
-    public static String parseInlineEmotes(String markdown, JSONObject mediaMetadataObject) throws JSONException {
+    public static String parseInlineEmotesAndGifs(String markdown, JSONObject mediaMetadataObject, JSONObject expressionAssetData) throws JSONException {
         JSONArray mediaMetadataNames = mediaMetadataObject.names();
         if (mediaMetadataNames != null) {
             for (int i = 0; i < mediaMetadataNames.length(); i++) {
@@ -132,16 +138,63 @@ public final class Utils {
                             || item.isNull(JSONUtils.S_KEY)) {
                         continue;
                     }
-                    String emote_type = item.getString(JSONUtils.T_KEY);
+                    String mime_type = item.getString("m");
+                    String type = item.getString("t");
                     String emote_id = item.getString(JSONUtils.ID_KEY);
-
                     JSONObject s_key = item.getJSONObject(JSONUtils.S_KEY);
-                    if (s_key.isNull(JSONUtils.U_KEY)) {
+                    String emote_url = "";
+
+
+                    if(mime_type.equals("image/gif")){
+                        emote_url = s_key.getString("gif");
+                    }else if(type.equals("emoji")){
+                        emote_url = s_key.getString("u");
+                    }else{
                         continue;
                     }
-                    String emote_url = s_key.getString(JSONUtils.U_KEY);
+                    markdown = markdown.replace(emote_id, emote_url);
+                }
+            }
+        }
 
-                    markdown = markdown.replace("![img](" + emote_id + ")", "[" + emote_type + "](" + emote_url + ") ");
+        if(expressionAssetData == null){
+            return markdown;
+        }
+
+        String front = "";
+        String back = "";
+        String container = "<div>%s%s%s</div>";
+        int res = 0;
+        String tmpl = "<div style=\"width: 150px; height: 150px\"><img style=\"position: absolute; top: 0\"src=\"%s\"/><div style=\"width: 100%%;height: 100%%;position: relative;display: grid;overflow: hidden;\"><div style=\"width: 150px;height: 150px;position: absolute;top: 25;display: flex;justify-content: center;\"><img src=\"%s\"/></div></div><img style=\"position: absolute; top: 0\"src=\"%s\"/></div>";
+
+        JSONArray expressionAssetDataNames = expressionAssetData.names();
+        if(expressionAssetDataNames != null){
+            for (int i = 0; i < expressionAssetDataNames.length(); i++){
+                if(!expressionAssetDataNames.isNull(i)){
+                    String expressionAssetKey = expressionAssetDataNames.getString(i);
+                    if (expressionAssetData.isNull(expressionAssetKey)) {
+                        continue;
+                    }
+                    JSONObject item = expressionAssetData.getJSONObject(expressionAssetKey);
+                    JSONArray expression = item.getJSONArray("expression");
+                    res = expression.getJSONObject(0).getJSONObject(JSONUtils.S_KEY).getInt(JSONUtils.X_KEY);
+                    for(int j = 0; j< expression.length(); j++){
+                        if(expression.getJSONObject(j).getJSONObject(JSONUtils.S_KEY).getInt(JSONUtils.X_KEY) == res){
+                            switch (expression.getJSONObject(j).getString("l")){
+                                case "BACK":
+                                    back = expression.getJSONObject(j).getJSONObject(JSONUtils.S_KEY).getString(JSONUtils.U_KEY);
+                                    break;
+                                case "FRONT":
+                                    front = expression.getJSONObject(j).getJSONObject(JSONUtils.S_KEY).getString(JSONUtils.U_KEY);
+                                    break;
+                            }
+
+                        }
+                    }
+                    String snoo = String.format("<img src=\"%s\"/>", item.getJSONObject("avatar").getJSONObject(JSONUtils.S_KEY).getString(JSONUtils.U_KEY));
+                    container = String.format(tmpl, back, snoo, front);
+
+                    markdown = markdown.replace(String.format("![img](%s)",expressionAssetKey), "*This comment contains a Collectible Expression which are not available on old Reddit.*");
                 }
             }
         }

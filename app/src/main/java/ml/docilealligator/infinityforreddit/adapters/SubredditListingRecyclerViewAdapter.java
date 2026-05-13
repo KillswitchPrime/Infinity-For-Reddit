@@ -158,7 +158,7 @@ public class SubredditListingRecyclerViewAdapter extends PagedListAdapter<Subred
                                     ((DataViewHolder) holder).subscribeButton.setOnClickListener(view -> {
                                         if (accessToken != null) {
                                             SubredditSubscription.subscribeToSubreddit(executor, new Handler(),
-                                                    oauthRetrofit, retrofit, accessToken, subredditData.getName(),
+                                                    oauthRetrofit, retrofit, accessToken, subredditData.getName(), subredditData.getId(),
                                                     accountName, redditDataRoomDatabase,
                                                     new SubredditSubscription.SubredditSubscriptionListener() {
                                                         @Override
@@ -173,8 +173,8 @@ public class SubredditListingRecyclerViewAdapter extends PagedListAdapter<Subred
                                                         }
                                                     });
                                         } else {
-                                            SubredditSubscription.anonymousSubscribeToSubreddit(executor, new Handler(),
-                                                    retrofit, redditDataRoomDatabase, subredditData.getName(),
+                                            SubredditSubscription.anonymousSubscribeToSubreddit(executor, new Handler(), accessToken,
+                                                    oauthRetrofit, redditDataRoomDatabase, subredditData.getName(),
                                                     new SubredditSubscription.SubredditSubscriptionListener() {
                                                         @Override
                                                         public void onSubredditSubscriptionSuccess() {

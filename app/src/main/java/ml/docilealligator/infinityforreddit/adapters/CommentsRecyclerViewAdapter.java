@@ -92,6 +92,7 @@ public class CommentsRecyclerViewAdapter extends RecyclerView.Adapter<RecyclerVi
     private ViewPostDetailFragment mFragment;
     private Executor mExecutor;
     private Retrofit mRetrofit;
+    private Retrofit mGQLRetrofit;
     private Retrofit mOauthRetrofit;
     private Markwon mCommentMarkwon;
     private String mAccessToken;
@@ -139,6 +140,7 @@ public class CommentsRecyclerViewAdapter extends RecyclerView.Adapter<RecyclerVi
     private int mUsernameColor;
     private int mSubmitterColor;
     private int mModeratorColor;
+    private int mDeletedColor;
     private int mCurrentUserColor;
     private int mAuthorFlairTextColor;
     private int mUpvotedColor;
@@ -156,7 +158,7 @@ public class CommentsRecyclerViewAdapter extends RecyclerView.Adapter<RecyclerVi
 
     public CommentsRecyclerViewAdapter(BaseActivity activity, ViewPostDetailFragment fragment,
                                        CustomThemeWrapper customThemeWrapper,
-                                       Executor executor, Retrofit retrofit, Retrofit oauthRetrofit,
+                                       Executor executor, Retrofit retrofit, Retrofit oauthRetrofit, Retrofit gqlRetrofit,
                                        String accessToken, String accountName,
                                        Post post, Locale locale, String singleCommentId,
                                        boolean isSingleCommentThreadMode,
@@ -167,6 +169,7 @@ public class CommentsRecyclerViewAdapter extends RecyclerView.Adapter<RecyclerVi
         mExecutor = executor;
         mRetrofit = retrofit;
         mOauthRetrofit = oauthRetrofit;
+        mGQLRetrofit = gqlRetrofit;
         mGlide = Glide.with(activity);
         mSecondaryTextColor = customThemeWrapper.getSecondaryTextColor();
         mCommentTextColor = customThemeWrapper.getCommentColor();
@@ -279,6 +282,7 @@ public class CommentsRecyclerViewAdapter extends RecyclerView.Adapter<RecyclerVi
         mCommentBackgroundColor = customThemeWrapper.getCommentBackgroundColor();
         mSubmitterColor = customThemeWrapper.getSubmitter();
         mModeratorColor = customThemeWrapper.getModerator();
+        mDeletedColor = customThemeWrapper.getDeleted();
         mCurrentUserColor = customThemeWrapper.getCurrentUser();
         mAuthorFlairTextColor = customThemeWrapper.getAuthorFlairTextColor();
         mUsernameColor = customThemeWrapper.getUsername();
@@ -420,6 +424,8 @@ public class CommentsRecyclerViewAdapter extends RecyclerView.Adapter<RecyclerVi
                     Drawable currentUserDrawable = Utils.getTintedDrawable(mActivity, R.drawable.ic_current_user_14dp, mCurrentUserColor);
                     ((CommentViewHolder) holder).authorTextView.setCompoundDrawablesWithIntrinsicBounds(
                             currentUserDrawable, null, null, null);
+                }else if (comment.isAuthorDeleted()) {
+                    ((CommentViewHolder) holder).authorTextView.setTextColor(mDeletedColor);
                 }
 
                 if (comment.getAuthorIconUrl() == null) {
@@ -657,11 +663,11 @@ public class CommentsRecyclerViewAdapter extends RecyclerView.Adapter<RecyclerVi
                         mVisibleComments.get(commentPosition).setLoadMoreChildrenFailed(false);
                         ((LoadMoreChildCommentsViewHolder) holder).placeholderTextView.setText(R.string.loading);
 
-                        Retrofit retrofit = mAccessToken == null ? mRetrofit : mOauthRetrofit;
+                        Retrofit retrofit = mAccessToken == null ? mRetrofit : mGQLRetrofit;
                         SortType.Type sortType = mCommentRecyclerViewAdapterCallback.getSortType();
                         FetchComment.fetchMoreComment(mExecutor, new Handler(), retrofit, mAccessToken,
                                 parentComment.getMoreChildrenIds(),
-                                mExpandChildren, mPost.getFullName(), sortType, new FetchComment.FetchMoreCommentListener() {
+                                mExpandChildren, mPost.getFullName(), sortType, mPost.getAuthor(), new FetchComment.FetchMoreCommentListener() {
                                     @Override
                                     public void onFetchMoreCommentSuccess(ArrayList<Comment> topLevelComments,
                                                                           ArrayList<Comment> expandedComments,
@@ -1454,7 +1460,7 @@ public class CommentsRecyclerViewAdapter extends RecyclerView.Adapter<RecyclerVi
                                         comment.getScore() + comment.getVoteType())));
                     }
 
-                    VoteThing.voteThing(mActivity, mOauthRetrofit, mAccessToken, new VoteThing.VoteThingListener() {
+                    VoteThing.voteThing(mActivity, mGQLRetrofit, mAccessToken, new VoteThing.VoteThingListener() {
                         @Override
                         public void onVoteThingSuccess(int position) {
                             int currentPosition = getBindingAdapterPosition();
@@ -1536,7 +1542,7 @@ public class CommentsRecyclerViewAdapter extends RecyclerView.Adapter<RecyclerVi
                     }
 
                     int position = getBindingAdapterPosition();
-                    VoteThing.voteThing(mActivity, mOauthRetrofit, mAccessToken, new VoteThing.VoteThingListener() {
+                    VoteThing.voteThing(mActivity, mGQLRetrofit, mAccessToken, new VoteThing.VoteThingListener() {
                         @Override
                         public void onVoteThingSuccess(int position1) {
                             int currentPosition = getBindingAdapterPosition();

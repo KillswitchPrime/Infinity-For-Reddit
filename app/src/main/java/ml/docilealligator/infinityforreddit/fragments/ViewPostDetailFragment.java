@@ -157,6 +157,9 @@ public class ViewPostDetailFragment extends Fragment implements FragmentCommunic
     @Named("oauth")
     Retrofit mOauthRetrofit;
     @Inject
+    @Named("gql")
+    Retrofit mGQLRetrofit;
+    @Inject
     @Named("gfycat")
     Retrofit mGfycatRetrofit;
     @Inject
@@ -178,6 +181,9 @@ public class ViewPostDetailFragment extends Fragment implements FragmentCommunic
     @Inject
     @Named("current_account")
     SharedPreferences mCurrentAccountSharedPreferences;
+    @Inject
+    @Named("anonymous_account")
+    SharedPreferences mAnonymousAccountSharedPreferences;
     @Inject
     @Named("post_details")
     SharedPreferences mPostDetailsSharedPreferences;
@@ -206,6 +212,8 @@ public class ViewPostDetailFragment extends Fragment implements FragmentCommunic
     boolean loadMoreChildrenSuccess = true;
     @State
     boolean hasMoreChildren;
+    @State
+    String afterKey;
     @State
     boolean isFetchingComments = false;
     @State
@@ -273,6 +281,9 @@ public class ViewPostDetailFragment extends Fragment implements FragmentCommunic
         mRecyclerView.addOnWindowFocusChangedListener(this::onWindowFocusChanged);
 
         mAccessToken = mCurrentAccountSharedPreferences.getString(SharedPreferencesUtils.ACCESS_TOKEN, null);
+        if(mAccessToken == null){
+            mAccessToken = mAnonymousAccountSharedPreferences.getString(SharedPreferencesUtils.ACCESS_TOKEN, null);
+        }
         mAccountName = mCurrentAccountSharedPreferences.getString(SharedPreferencesUtils.ACCOUNT_NAME, null);
 
         mSavedIcon = getMenuItemIcon(R.drawable.ic_bookmark_toolbar_24dp);
@@ -594,12 +605,12 @@ public class ViewPostDetailFragment extends Fragment implements FragmentCommunic
 
             mPostAdapter = new PostDetailRecyclerViewAdapter(activity,
                     this, mExecutor, mCustomThemeWrapper, mRetrofit, mOauthRetrofit, mGfycatRetrofit,
-                    mRedgifsRetrofit, mStreamableApiProvider, mRedditDataRoomDatabase, mGlide,
+                    mRedgifsRetrofit, mGQLRetrofit, mStreamableApiProvider, mRedditDataRoomDatabase, mGlide,
                     mSeparatePostAndComments, mAccessToken, mAccountName, mPost, mLocale,
                     mSharedPreferences, mCurrentAccountSharedPreferences, mNsfwAndSpoilerSharedPreferences, mPostDetailsSharedPreferences,
                     mExoCreator, post -> EventBus.getDefault().post(new PostUpdateEventToPostList(mPost, postListPosition)));
             mCommentsAdapter = new CommentsRecyclerViewAdapter(activity,
-                    this, mCustomThemeWrapper, mExecutor, mRetrofit, mOauthRetrofit,
+                    this, mCustomThemeWrapper, mExecutor, mRetrofit, mOauthRetrofit, mGQLRetrofit,
                     mAccessToken, mAccountName, mPost, mLocale, mSingleCommentId,
                     isSingleCommentThreadMode, mSharedPreferences,
                     new CommentsRecyclerViewAdapter.CommentRecyclerViewAdapterCallback() {
@@ -1325,7 +1336,7 @@ public class ViewPostDetailFragment extends Fragment implements FragmentCommunic
 
                             mPostAdapter = new PostDetailRecyclerViewAdapter(activity,
                                     ViewPostDetailFragment.this, mExecutor, mCustomThemeWrapper,
-                                    mRetrofit, mOauthRetrofit, mGfycatRetrofit, mRedgifsRetrofit,
+                                    mRetrofit, mOauthRetrofit, mGfycatRetrofit, mRedgifsRetrofit, mGQLRetrofit,
                                     mStreamableApiProvider, mRedditDataRoomDatabase, mGlide, mSeparatePostAndComments,
                                     mAccessToken, mAccountName, mPost, mLocale, mSharedPreferences,
                                     mCurrentAccountSharedPreferences, mNsfwAndSpoilerSharedPreferences,
@@ -1334,7 +1345,7 @@ public class ViewPostDetailFragment extends Fragment implements FragmentCommunic
 
                             mCommentsAdapter = new CommentsRecyclerViewAdapter(activity,
                                     ViewPostDetailFragment.this, mCustomThemeWrapper, mExecutor,
-                                    mRetrofit, mOauthRetrofit, mAccessToken, mAccountName, mPost, mLocale,
+                                    mRetrofit, mOauthRetrofit, mGQLRetrofit, mAccessToken, mAccountName, mPost, mLocale,
                                     mSingleCommentId, isSingleCommentThreadMode, mSharedPreferences,
                                     new CommentsRecyclerViewAdapter.CommentRecyclerViewAdapterCallback() {
                                         @Override
@@ -1462,7 +1473,7 @@ public class ViewPostDetailFragment extends Fragment implements FragmentCommunic
                     e.printStackTrace();
                 }
             }
-            FetchSubredditData.fetchSubredditData(mOauthRetrofit, mRetrofit, mPost.getSubredditName(), mAccessToken,
+            FetchSubredditData.fetchSubredditData(mGQLRetrofit, mRetrofit, mPost.getSubredditName(), mAccessToken,
                     new FetchSubredditData.FetchSubredditDataListener() {
                         @Override
                         public void onFetchSubredditDataSuccess(SubredditData subredditData, int nCurrentOnlineSubscribers) {
@@ -1506,9 +1517,10 @@ public class ViewPostDetailFragment extends Fragment implements FragmentCommunic
             commentId = mSingleCommentId;
         }
 
-        Retrofit retrofit = mAccessToken == null ? mRetrofit : mOauthRetrofit;
+        Retrofit retrofit = mAccessToken == null ? mRetrofit : mGQLRetrofit;
+
         FetchComment.fetchComments(mExecutor, new Handler(), retrofit, mAccessToken, mPost.getId(), commentId, sortType,
-                mContextNumber, mExpandChildren, mLocale, new FetchComment.FetchCommentListener() {
+                mContextNumber, mExpandChildren, mLocale, mPost.getAuthor(), new FetchComment.FetchCommentListener() {
                     @Override
                     public void onFetchCommentSuccess(ArrayList<Comment> expandedComments,
                                                       String parentId, ArrayList<String> children) {
@@ -1593,9 +1605,9 @@ public class ViewPostDetailFragment extends Fragment implements FragmentCommunic
 
         isLoadingMoreChildren = true;
 
-        Retrofit retrofit = mAccessToken == null ? mRetrofit : mOauthRetrofit;
+        Retrofit retrofit = mAccessToken == null ? mRetrofit : mGQLRetrofit;
         FetchComment.fetchMoreComment(mExecutor, new Handler(), retrofit, mAccessToken, children,
-                mExpandChildren, mPost.getFullName(), sortType, new FetchComment.FetchMoreCommentListener() {
+                mExpandChildren, mPost.getFullName(), sortType, mPost.getAuthor(), new FetchComment.FetchMoreCommentListener() {
                     @Override
                     public void onFetchMoreCommentSuccess(ArrayList<Comment> topLevelComments,
                                                           ArrayList<Comment> expandedComments,

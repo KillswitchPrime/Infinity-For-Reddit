@@ -8,8 +8,11 @@ import androidx.annotation.NonNull;
 import java.util.HashMap;
 import java.util.Map;
 
+import ml.docilealligator.infinityforreddit.apis.GqlAPI;
+import ml.docilealligator.infinityforreddit.apis.GqlRequestBody;
 import ml.docilealligator.infinityforreddit.apis.RedditAPI;
 import ml.docilealligator.infinityforreddit.utils.APIUtils;
+import okhttp3.RequestBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Retrofit;
@@ -20,17 +23,28 @@ import retrofit2.Retrofit;
 
 public class VoteThing {
 
+    public static boolean isPost(String id){
+        if (id.startsWith("t3_")){
+            return true;
+        }
+        return false;
+    }
+
     public static void voteThing(Context context, final Retrofit retrofit, String accessToken,
                                  final VoteThingListener voteThingListener, final String fullName,
                                  final String point, final int position) {
-        RedditAPI api = retrofit.create(RedditAPI.class);
 
-        Map<String, String> params = new HashMap<>();
-        params.put(APIUtils.DIR_KEY, point);
-        params.put(APIUtils.ID_KEY, fullName);
-        params.put(APIUtils.RANK_KEY, APIUtils.RANK);
+        GqlAPI api = retrofit.create(GqlAPI.class);
+        Call<String> voteThingCall;
 
-        Call<String> voteThingCall = api.voteThing(APIUtils.getOAuthHeader(accessToken), params);
+        if (isPost(fullName)) {
+            RequestBody body = GqlRequestBody.updatePostVoteStateBody(fullName, point);
+            voteThingCall = api.updatePostVoteState(APIUtils.getOAuthHeader(accessToken), body);
+        }else{
+            RequestBody body = GqlRequestBody.updateCommentVoteStateBody(fullName, point);
+            voteThingCall = api.updateCommentVoteState(APIUtils.getOAuthHeader(accessToken), body);
+        }
+
         voteThingCall.enqueue(new Callback<String>() {
             @Override
             public void onResponse(@NonNull Call<String> call, @NonNull retrofit2.Response<String> response) {
@@ -53,14 +67,16 @@ public class VoteThing {
     public static void voteThing(Context context, final Retrofit retrofit, String accessToken,
                                  final VoteThingWithoutPositionListener voteThingWithoutPositionListener,
                                  final String fullName, final String point) {
-        RedditAPI api = retrofit.create(RedditAPI.class);
+        GqlAPI api = retrofit.create(GqlAPI.class);
+        Call<String> voteThingCall;
 
-        Map<String, String> params = new HashMap<>();
-        params.put(APIUtils.DIR_KEY, point);
-        params.put(APIUtils.ID_KEY, fullName);
-        params.put(APIUtils.RANK_KEY, APIUtils.RANK);
-
-        Call<String> voteThingCall = api.voteThing(APIUtils.getOAuthHeader(accessToken), params);
+        if (isPost(fullName)) {
+            RequestBody body = GqlRequestBody.updatePostVoteStateBody(fullName, point);
+            voteThingCall = api.updatePostVoteState(APIUtils.getOAuthHeader(accessToken), body);
+        }else{
+            RequestBody body = GqlRequestBody.updateCommentVoteStateBody(fullName, point);
+            voteThingCall = api.updateCommentVoteState(APIUtils.getOAuthHeader(accessToken), body);
+        }
         voteThingCall.enqueue(new Callback<String>() {
             @Override
             public void onResponse(@NonNull Call<String> call, @NonNull retrofit2.Response<String> response) {

@@ -6,13 +6,18 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.concurrent.Executor;
 
 import ml.docilealligator.infinityforreddit.SortType;
+import ml.docilealligator.infinityforreddit.apis.GqlAPI;
 import ml.docilealligator.infinityforreddit.apis.RedditAPI;
 import ml.docilealligator.infinityforreddit.utils.APIUtils;
+import okhttp3.RequestBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -27,6 +32,8 @@ public class FetchComment {
                                      Locale locale, FetchCommentListener fetchCommentListener) {
         Log.d(TAG, "Fetching comments for article=" + article + ", commentId=" + commentId + ", sort=" + sortType);
         RedditAPI api = retrofit.create(RedditAPI.class);
+        GqlAPI gqlAPI = retrofit.create(GqlAPI.class);
+
         Call<String> comments;
         if (accessToken == null) {
             if (commentId == null) {
@@ -36,7 +43,9 @@ public class FetchComment {
             }
         } else {
             if (commentId == null) {
-                comments = api.getPostAndCommentsByIdOauth(article, sortType, APIUtils.getOAuthHeader(accessToken));
+                String fullArticle = "t3_" + article;
+                RequestBody payload = createCommentVariables(fullArticle, sortType, null);
+                comments = gqlAPI.getPostComments(APIUtils.getOAuthHeader(accessToken), payload);
             } else {
                 comments = api.getPostAndCommentsSingleThreadByIdOauth(article, commentId, sortType, contextNumber,
                         APIUtils.getOAuthHeader(accessToken));
@@ -83,7 +92,7 @@ public class FetchComment {
                                         @Nullable String accessToken,
                                         ArrayList<String> allChildren,
                                         boolean expandChildren, String postFullName,
-                                        SortType.Type sortType,
+                                        SortType.Type sortType, String authorName,
                                         FetchMoreCommentListener fetchMoreCommentListener) {
         if (allChildren == null) {
             Log.w(TAG, "More-comments fetch skipped because children list is null");
@@ -100,12 +109,16 @@ public class FetchComment {
         Log.d(TAG, "Fetching more comments for post=" + postFullName + ", childCount=" + allChildren.size());
 
         RedditAPI api = retrofit.create(RedditAPI.class);
+        GqlAPI gqlAPI = retrofit.create(GqlAPI.class);
+
         Call<String> moreComments;
         if (accessToken == null) {
             moreComments = api.moreChildren(postFullName, childrenIds, sortType);
         } else {
-            moreComments = api.moreChildrenOauth(postFullName, childrenIds,
-                    sortType, APIUtils.getOAuthHeader(accessToken));
+            //moreComments = api.moreChildrenOauth(postFullName, childrenIds,
+            //        sortType, APIUtils.getOAuthHeader(accessToken));
+            RequestBody payload = createCommentVariables(postFullName, sortType, allChildren.get(0));
+            moreComments = gqlAPI.getPostComments(APIUtils.getOAuthHeader(accessToken), payload);
         }
 
         moreComments.enqueue(new Callback<String>() {
@@ -156,5 +169,81 @@ public class FetchComment {
                                        ArrayList<String> moreChildrenIds);
 
         void onFetchMoreCommentFailed();
+    }
+
+    private static RequestBody createCommentVariables(String id, SortType.Type sortType, String afterKey) {
+        /*
+        {
+            "operationName": "PostComments",
+            "variables": {
+                "id": "t3_1d8zdwf",
+                "sortType": "CONTROVERSIAL",
+                "maxDepth": 10,
+                "count": 8,
+                "includeAwards": true,
+                "includeTranslation": false,
+                "includeCurrentUserAwards": false,
+                "preTranslate": false,
+                "preTranslationTargetLanguage": "en",
+                "includeCommentsHtmlField": true,
+                "truncate": 0,
+                "includeIsGildable": true,
+                "includeAdEligibility": false
+            },
+            "extensions": {
+                "persistedQuery": {
+                    "version": 1,
+                    "sha256Hash": "dc1b502b203313fb568ab4b63b88c218eacfce4e3d1298a6facd00e9b3226d9c"
+                }
+            }
+        }
+         */
+        JSONObject payload = new JSONObject();
+        JSONObject variables = new JSONObject();
+
+        try {
+            variables.put("id", id);
+            variables.put("sortType", sortType.value.toUpperCase(Locale.ROOT));
+            variables.put("maxDepth", 10);
+            variables.put("count", 200);
+            variables.put("includeAwards", true);
+            variables.put("includeTranslation", false);
+            variables.put("includeCurrentUserAwards", false);
+            variables.put("preTranslate", false);
+            variables.put("preTranslationTargetLanguage", "en");
+            variables.put("includeCommentsHtmlField", true);
+            variables.put("truncate", 0);
+            variables.put("includeIsGildable", true);
+            variables.put("includeAdEligibility", false);
+
+            if (afterKey != null) {
+                variables.put("after", afterKey);
+            }
+
+            payload.put("operationName", "PostComments");
+            payload.put("variables", variables);
+
+            JSONObject extensions = createExtensionsObject("dc1b502b203313fb568ab4b63b88c218eacfce4e3d1298a6facd00e9b3226d9c");
+
+            payload.put("extensions", extensions);
+
+        } catch (JSONException e) {
+            throw new RuntimeException(e);
+        }
+
+        return RequestBody.create(payload.toString(), okhttp3.MediaType.parse("application/json; charset=utf-8"));
+    }
+
+    private static JSONObject createExtensionsObject(String sha256Hash) {
+        JSONObject data = new JSONObject();
+        JSONObject persistedQuery = new JSONObject();
+        try {
+            persistedQuery.put("version", 1);
+            persistedQuery.put("sha256Hash", sha256Hash);
+            data.put("persistedQuery", persistedQuery);
+        } catch (JSONException e) {
+
+        }
+        return data;
     }
 }

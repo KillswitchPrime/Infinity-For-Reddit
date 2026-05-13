@@ -337,6 +337,10 @@ public class CustomThemeWrapper {
                 getDefaultColor("#00BA81", "#00BA81", "#00BA81"));
     }
 
+    public int getDeleted() {
+        return getDefaultColor("#D2042D", "#D2042D", "#D2042D");
+    }
+
     public int getCurrentUser() {
         return getThemeSharedPreferences().getInt(CustomThemeSharedPreferencesUtils.CURRENT_USER,
                 getDefaultColor("#00D5EA", "#00D5EA", "#00D5EA"));

@@ -7,6 +7,7 @@ import android.text.util.Linkify;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.res.ResourcesCompat;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.RequestBuilder;
@@ -133,6 +134,14 @@ public class MarkdownUtils {
                         .setOnLinkLongClickListener(onLinkLongClickListener)))
                 .usePlugin(LinkifyPlugin.create(Linkify.WEB_URLS))
                 .usePlugin(TableEntryPlugin.create(context))
+                .usePlugin(ImagesPlugin.create(new ImagesPlugin.ImagesConfigure() {
+                    @Override
+                    public void configureImages(@NonNull ImagesPlugin plugin) {
+                        plugin.placeholderProvider(drawable -> ResourcesCompat.getDrawable(context.getResources(), R.drawable.ic_image_24dp, context.getTheme()));
+
+                    }
+                }))
+                .usePlugin(ClickImagePlugin.create(context))
                 .build();
     }
 

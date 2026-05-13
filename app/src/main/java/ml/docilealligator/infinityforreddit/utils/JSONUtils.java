@@ -41,6 +41,7 @@ public class JSONUtils {
     public static final String MEDIA_KEY = "media";
     public static final String REDDIT_VIDEO_KEY = "reddit_video";
     public static final String HLS_URL_KEY = "hls_url";
+    public static final String DASH_URL_KEY = "dash_url";
     public static final String FALLBACK_URL_KEY = "fallback_url";
     public static final String IS_VIDEO_KEY = "is_video";
     public static final String CROSSPOST_PARENT_LIST = "crosspost_parent_list";
@@ -118,6 +119,7 @@ public class JSONUtils {
     public static final String MP4_KEY = "mp4";
     public static final String THINGS_KEY = "things";
     public static final String MEDIA_METADATA_KEY = "media_metadata";
+    public static final String EXPRESSION_ASSET_KEY = "expression_asset_data";
     public static final String GALLERY_DATA_KEY = "gallery_data";
     public static final String ITEMS_KEY = "items";
     public static final String M_KEY = "m";

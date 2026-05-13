@@ -82,6 +82,9 @@ public class SubredditListingFragment extends Fragment implements FragmentCommun
     @Named("oauth")
     Retrofit mOauthRetrofit;
     @Inject
+    @Named("gql")
+    Retrofit mGQLRetrofit;
+    @Inject
     RedditDataRoomDatabase mRedditDataRoomDatabase;
     @Inject
     @Named("default")
@@ -142,7 +145,7 @@ public class SubredditListingFragment extends Fragment implements FragmentCommun
         sortType = new SortType(SortType.Type.valueOf(sort.toUpperCase()));
         boolean nsfw = !mSharedPreferences.getBoolean(SharedPreferencesUtils.DISABLE_NSFW_FOREVER, false) && mNsfwAndSpoilerSharedPreferences.getBoolean((accountName == null ? "" : accountName) + SharedPreferencesUtils.NSFW_BASE, false);
 
-        mAdapter = new SubredditListingRecyclerViewAdapter(mActivity, mExecutor, mOauthRetrofit, mRetrofit,
+        mAdapter = new SubredditListingRecyclerViewAdapter(mActivity, mExecutor, mGQLRetrofit, mRetrofit,
                 mCustomThemeWrapper, accessToken, accountName,
                 mRedditDataRoomDatabase, getArguments().getBoolean(EXTRA_IS_MULTI_SELECTION, false),
                 new SubredditListingRecyclerViewAdapter.Callback() {
@@ -179,7 +182,7 @@ public class SubredditListingFragment extends Fragment implements FragmentCommun
         }
 
         SubredditListingViewModel.Factory factory = new SubredditListingViewModel.Factory(
-                accessToken == null ? mRetrofit : mOauthRetrofit, query, sortType, accessToken, nsfw);
+                mGQLRetrofit, query, sortType, accessToken, nsfw);
         mSubredditListingViewModel = new ViewModelProvider(this, factory).get(SubredditListingViewModel.class);
         mSubredditListingViewModel.getSubreddits().observe(getViewLifecycleOwner(), subredditData -> mAdapter.submitList(subredditData));
 

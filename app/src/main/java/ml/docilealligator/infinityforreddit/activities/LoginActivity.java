@@ -3,15 +3,12 @@ package ml.docilealligator.infinityforreddit.activities;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
-import android.text.SpannableString;
-import android.text.util.Linkify;
 import android.util.Log;
 import android.view.InflateException;
+import android.view.KeyEvent;
 import android.view.MenuItem;
 import android.view.View;
 import android.webkit.CookieManager;
@@ -27,33 +24,42 @@ import androidx.coordinatorlayout.widget.CoordinatorLayout;
 import androidx.core.app.ActivityCompat;
 
 import com.google.android.material.appbar.AppBarLayout;
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.progressindicator.CircularProgressIndicatorSpec;
+import com.google.android.material.progressindicator.IndeterminateDrawable;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.HashMap;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
 import javax.inject.Named;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import me.saket.bettermovementmethod.BetterLinkMovementMethod;
 import ml.docilealligator.infinityforreddit.FetchMyInfo;
 import ml.docilealligator.infinityforreddit.Infinity;
 import ml.docilealligator.infinityforreddit.R;
 import ml.docilealligator.infinityforreddit.RedditDataRoomDatabase;
-import ml.docilealligator.infinityforreddit.apis.RedditAPI;
+import ml.docilealligator.infinityforreddit.SessionHolder;
+import ml.docilealligator.infinityforreddit.apis.RedditAccountsAPI;
 import ml.docilealligator.infinityforreddit.asynctasks.ParseAndInsertNewAccount;
 import ml.docilealligator.infinityforreddit.customtheme.CustomThemeWrapper;
 import ml.docilealligator.infinityforreddit.customviews.slidr.Slidr;
 import ml.docilealligator.infinityforreddit.utils.APIUtils;
 import ml.docilealligator.infinityforreddit.utils.SharedPreferencesUtils;
 import ml.docilealligator.infinityforreddit.utils.Utils;
+import ml.docilealligator.infinityforreddit.utils.XHmac;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -64,6 +70,12 @@ public class LoginActivity extends BaseActivity {
     private static final String ENABLE_DOM_STATE = "EDS";
     private static final String IS_AGREE_TO_USER_AGGREMENT_STATE = "IATUAS";
 
+    @BindView(R.id.login_btn)
+    MaterialButton loginButton;
+    @BindView(R.id.text_username)
+    EditText textUsername;
+    @BindView(R.id.text_password)
+    EditText textPassword;
     @BindView(R.id.coordinator_layout_login_activity)
     CoordinatorLayout coordinatorLayout;
     @BindView(R.id.appbar_layout_login_activity)
@@ -72,8 +84,6 @@ public class LoginActivity extends BaseActivity {
     Toolbar toolbar;
     @BindView(R.id.two_fa_infO_text_view_login_activity)
     TextView twoFAInfoTextView;
-    @BindView(R.id.webview_login_activity)
-    WebView webView;
     @BindView(R.id.fab_login_activity)
     FloatingActionButton fab;
     @Inject
@@ -82,6 +92,9 @@ public class LoginActivity extends BaseActivity {
     @Inject
     @Named("oauth")
     Retrofit mOauthRetrofit;
+    @Inject
+    @Named("login")
+    Retrofit mLoginRetrofit;
     @Inject
     RedditDataRoomDatabase mRedditDataRoomDatabase;
     @Inject
@@ -96,7 +109,12 @@ public class LoginActivity extends BaseActivity {
     Executor mExecutor;
     private String authCode;
     private boolean enableDom = false;
-    private boolean isAgreeToUserAgreement = false;
+
+    public static final String formatting(String str, long seconds) {
+        String format = String.format(Locale.US, "%d:%s:%d:%d:%s",
+                Arrays.copyOf(new Object[] { 1, "android", 2, Long.valueOf(seconds), str }, 5));
+        return format;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -129,42 +147,42 @@ public class LoginActivity extends BaseActivity {
 
         if (savedInstanceState != null) {
             enableDom = savedInstanceState.getBoolean(ENABLE_DOM_STATE);
-            isAgreeToUserAgreement = savedInstanceState.getBoolean(IS_AGREE_TO_USER_AGGREMENT_STATE);
         }
 
-        fab.setOnClickListener(view -> {
-            new MaterialAlertDialogBuilder(this, R.style.MaterialAlertDialogTheme)
-                    .setTitle(R.string.have_trouble_login_title)
-                    .setMessage(R.string.have_trouble_login_message)
-                    .setPositiveButton(R.string.yes, (dialogInterface, i) -> {
-                        enableDom = !enableDom;
-                        ActivityCompat.recreate(this);
-                    })
-                    .setNegativeButton(R.string.no, null)
-                    .show();
-        });
+        CircularProgressIndicatorSpec spec = new CircularProgressIndicatorSpec(LoginActivity.this, null, 0, com.google.android.material.R.style.Widget_Material3_CircularProgressIndicator_ExtraSmall);
+        IndeterminateDrawable<CircularProgressIndicatorSpec> progressIndicatorDrawable =
+                IndeterminateDrawable.createCircularDrawable(LoginActivity.this, spec);
 
-        if (enableDom) {
-            twoFAInfoTextView.setVisibility(View.GONE);
-        }
+        loginButton.setOnClickListener(view -> {
+            loginButton.setClickable(false);
+            loginButton.setIcon(progressIndicatorDrawable);
+            RedditAccountsAPI api = mLoginRetrofit.create(RedditAccountsAPI.class);
+            String username = textUsername.getText().toString();
+            String password = textPassword.getText().toString();
+
+            if(username.isBlank() || password.isBlank()){
+                Toast.makeText(LoginActivity.this, "Username or password is blank", Toast.LENGTH_LONG).show();
+                loginButton.setIcon(null);
+                loginButton.setClickable(true);
+                return;
+            }
+
+            String body = String.format("{\"username\":\"%s\",\"password\":\"%s\"}", username, password);
 
         webView.getSettings().setJavaScriptEnabled(true);
         webView.getSettings().setDomStorageEnabled(true);
         webView.getSettings().setUserAgentString(APIUtils.LOGIN_WEBVIEW_USER_AGENT);
 
-        Uri baseUri = Uri.parse(APIUtils.OAUTH_URL);
-        Uri.Builder uriBuilder = baseUri.buildUpon();
-        uriBuilder.appendQueryParameter(APIUtils.CLIENT_ID_KEY, APIUtils.CLIENT_ID);
-        uriBuilder.appendQueryParameter(APIUtils.RESPONSE_TYPE_KEY, APIUtils.RESPONSE_TYPE);
-        uriBuilder.appendQueryParameter(APIUtils.STATE_KEY, APIUtils.STATE);
-        uriBuilder.appendQueryParameter(APIUtils.REDIRECT_URI_KEY, APIUtils.REDIRECT_URI);
-        uriBuilder.appendQueryParameter(APIUtils.DURATION_KEY, APIUtils.DURATION);
-        uriBuilder.appendQueryParameter(APIUtils.SCOPE_KEY, APIUtils.SCOPE);
+            Locale locale = Locale.US;
+            long seconds = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis());
+            String msg = String.format(locale, "Epoch:%d|Body:%s",
+                    Arrays.copyOf(new Object[] { Long.valueOf(seconds), body }, 2));
 
-        String url = uriBuilder.toString();
+            String hmacBody = XHmac.getSignedHexString(msg);
+            loginHeaders.put("x-hmac-signed-body",formatting(hmacBody, seconds));
 
-        CookieManager.getInstance().removeAllCookies(aBoolean -> {
-        });
+            String dummyDeviceID = UUID.randomUUID().toString();
+            loginHeaders.put("client-vendor-id", dummyDeviceID);
 
         webView.loadUrl(url);
         webView.setWebViewClient(new WebViewClient() {
@@ -196,116 +214,117 @@ public class LoginActivity extends BaseActivity {
                                         String accountResponse = response.body();
                                         if (accountResponse == null) {
                                             //Handle error
+                                            loginButton.setIcon(null);
+                                            loginButton.setClickable(true);
                                             return;
                                         }
 
-                                        JSONObject responseJSON = new JSONObject(accountResponse);
-                                        String accessToken = responseJSON.getString(APIUtils.ACCESS_TOKEN_KEY);
-                                        String refreshToken = responseJSON.getString(APIUtils.REFRESH_TOKEN_KEY);
+                                        JSONObject responseJSON;
+                                        try {
+                                            responseJSON = new JSONObject(accountResponse);
+                                            String accessToken = responseJSON.getString(APIUtils.ACCESS_TOKEN_KEY);
+                                            int expiry = responseJSON.getInt(APIUtils.EXPIRY_TS_KEY);
 
-                                        FetchMyInfo.fetchAccountInfo(mOauthRetrofit, mRedditDataRoomDatabase,
-                                                accessToken, new FetchMyInfo.FetchMyInfoListener() {
-                                                    @Override
-                                                    public void onFetchMyInfoSuccess(String name, String profileImageUrl, String bannerImageUrl, int karma) {
-                                                        mCurrentAccountSharedPreferences.edit().putString(SharedPreferencesUtils.ACCESS_TOKEN, accessToken)
-                                                                .putString(SharedPreferencesUtils.ACCOUNT_NAME, name)
-                                                                .putString(SharedPreferencesUtils.ACCOUNT_IMAGE_URL, profileImageUrl).apply();
-                                                        ParseAndInsertNewAccount.parseAndInsertNewAccount(mExecutor, new Handler(), name, accessToken, refreshToken, profileImageUrl, bannerImageUrl,
-                                                                karma, authCode, mRedditDataRoomDatabase.accountDao(),
-                                                                () -> {
-                                                                    Intent resultIntent = new Intent();
-                                                                    setResult(Activity.RESULT_OK, resultIntent);
-                                                                    finish();
-                                                                });
-                                                    }
-
-                                                    @Override
-                                                    public void onFetchMyInfoFailed(boolean parseFailed) {
-                                                        if (parseFailed) {
-                                                            Toast.makeText(LoginActivity.this, R.string.parse_user_info_error, Toast.LENGTH_SHORT).show();
-                                                        } else {
-                                                            Toast.makeText(LoginActivity.this, R.string.cannot_fetch_user_info, Toast.LENGTH_SHORT).show();
+                                            FetchMyInfo.fetchAccountInfo(mOauthRetrofit, mRedditDataRoomDatabase,
+                                                    accessToken, new FetchMyInfo.FetchMyInfoListener() {
+                                                        @Override
+                                                        public void onFetchMyInfoSuccess(String name, String profileImageUrl, String bannerImageUrl, int karma) {
+                                                            mCurrentAccountSharedPreferences.edit().putString(SharedPreferencesUtils.ACCESS_TOKEN, accessToken)
+                                                                    .putString(SharedPreferencesUtils.ACCOUNT_NAME, name)
+                                                                    .putInt(APIUtils.EXPIRY_TS_KEY, expiry)
+                                                                    .putString(SharedPreferencesUtils.ACCOUNT_IMAGE_URL, profileImageUrl).apply();
+                                                            ParseAndInsertNewAccount.parseAndInsertNewAccount(mExecutor, new Handler(), name, accessToken, "", profileImageUrl, bannerImageUrl,
+                                                                    karma, authCode, redditSession, sessionExpiryTimestamp, mRedditDataRoomDatabase.accountDao(),
+                                                                    () -> {
+                                                                        Intent resultIntent = new Intent();
+                                                                        setResult(Activity.RESULT_OK, resultIntent);
+                                                                        finish();
+                                                                    });
                                                         }
 
-                                                        finish();
-                                                    }
-                                        });
-                                    } catch (JSONException e) {
-                                        e.printStackTrace();
-                                        Toast.makeText(LoginActivity.this, R.string.parse_json_response_error, Toast.LENGTH_SHORT).show();
-                                        finish();
+                                                        @Override
+                                                        public void onFetchMyInfoFailed(boolean parseFailed) {
+                                                            if (parseFailed) {
+                                                                Toast.makeText(LoginActivity.this, R.string.parse_user_info_error, Toast.LENGTH_SHORT).show();
+                                                            } else {
+                                                                Toast.makeText(LoginActivity.this, R.string.cannot_fetch_user_info, Toast.LENGTH_SHORT).show();
+                                                            }
+
+                                                            finish();
+                                                        }
+                                                    });
+                                        } catch (JSONException e) {
+                                            loginButton.setIcon(null);
+                                            loginButton.setClickable(true);
+                                            e.printStackTrace();
+                                        }
+
                                     }
-                                } else {
+                                }
+
+                                @Override
+                                public void onFailure(Call<String> call, Throwable t) {
                                     Toast.makeText(LoginActivity.this, R.string.retrieve_token_error, Toast.LENGTH_SHORT).show();
+                                    t.printStackTrace();
                                     finish();
                                 }
-                            }
+                            });
+                        } catch (JSONException e) {
+                            loginButton.setIcon(null);
+                            loginButton.setClickable(true);
+                        } catch (ParseException e) {
+                            throw new RuntimeException(e);
+                        }
 
-                            @Override
-                            public void onFailure(@NonNull Call<String> call, @NonNull Throwable t) {
-                                Toast.makeText(LoginActivity.this, R.string.retrieve_token_error, Toast.LENGTH_SHORT).show();
-                                t.printStackTrace();
-                                finish();
-                            }
-                        });
+
                     } else {
-                        Toast.makeText(LoginActivity.this, R.string.something_went_wrong, Toast.LENGTH_SHORT).show();
+                        Toast.makeText(LoginActivity.this, "Login Error", Toast.LENGTH_SHORT).show();
                         finish();
                     }
-
-                } else if (url.contains("error=access_denied")) {
-                    Toast.makeText(LoginActivity.this, R.string.access_denied, Toast.LENGTH_SHORT).show();
-                    finish();
-                } else {
-                    view.loadUrl(url);
                 }
 
-                return true;
-            }
+                @Override
+                public void onFailure(Call<String> call, Throwable t) {
+                    Toast.makeText(LoginActivity.this, "Login Error", Toast.LENGTH_SHORT).show();
+                    finish();
+                }
+            });
 
-            @Override
-            public void onPageStarted(WebView view, String url, Bitmap favicon) {
-                super.onPageStarted(view, url, favicon);
-            }
+        });
 
+        fab.setOnClickListener(view -> {
+            new MaterialAlertDialogBuilder(this, R.style.MaterialAlertDialogTheme)
+                    .setTitle(R.string.have_trouble_login_title)
+                    .setMessage(R.string.have_trouble_login_message)
+                    .setPositiveButton(R.string.yes, (dialogInterface, i) -> {
+                        enableDom = !enableDom;
+                        ActivityCompat.recreate(this);
+                    })
+                    .setNegativeButton(R.string.no, null)
+                    .show();
+        });
+
+        textPassword.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
-            public void onPageFinished(WebView view, String url) {
-                super.onPageFinished(view, url);
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                if (actionId == EditorInfo.IME_ACTION_DONE) {
+                    loginButton.performClick();
+                    return true;
+                }
+                return false;
             }
         });
 
-        if (!isAgreeToUserAgreement) {
-            TextView messageTextView = new TextView(this);
-            int padding = (int) Utils.convertDpToPixel(24, this);
-            messageTextView.setPaddingRelative(padding, padding, padding, padding);
-            SpannableString message = new SpannableString(getString(R.string.user_agreement_message, "https://www.redditinc.com/policies/user-agreement-september-12-2021", "https://docile-alligator.github.io"));
-            Linkify.addLinks(message, Linkify.WEB_URLS);
-            messageTextView.setMovementMethod(BetterLinkMovementMethod.newInstance().setOnLinkClickListener(new BetterLinkMovementMethod.OnLinkClickListener() {
-                @Override
-                public boolean onClick(TextView textView, String url) {
-                    Intent intent = new Intent(LoginActivity.this, LinkResolverActivity.class);
-                    intent.setData(Uri.parse(url));
-                    startActivity(intent);
-                    return true;
-                }
-            }));
-            messageTextView.setLinkTextColor(getResources().getColor(R.color.colorAccent));
-            messageTextView.setText(message);
-            new MaterialAlertDialogBuilder(this, R.style.MaterialAlertDialogTheme)
-                    .setTitle(getString(R.string.user_agreement_dialog_title))
-                    .setView(messageTextView)
-                    .setPositiveButton(R.string.agree, (dialogInterface, i) -> isAgreeToUserAgreement = true)
-                    .setNegativeButton(R.string.do_not_agree, (dialogInterface, i) -> finish())
-                    .setCancelable(false)
-                    .show();
+        if (enableDom) {
+            twoFAInfoTextView.setVisibility(View.GONE);
         }
+
     }
 
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putBoolean(ENABLE_DOM_STATE, enableDom);
-        outState.putBoolean(IS_AGREE_TO_USER_AGGREMENT_STATE, isAgreeToUserAgreement);
     }
 
     @Override
@@ -329,6 +348,11 @@ public class LoginActivity extends BaseActivity {
         if (typeface != null) {
             twoFAInfoTextView.setTypeface(typeface);
         }
+        textUsername.setTextColor(mCustomThemeWrapper.getPrimaryTextColor());
+        textPassword.setTextColor(mCustomThemeWrapper.getPrimaryTextColor());
+        loginButton.setBackgroundColor(customThemeWrapper.getColorAccent());
+        loginButton.setTextColor(mCustomThemeWrapper.getPrimaryTextColor());
+
     }
 
     @Override

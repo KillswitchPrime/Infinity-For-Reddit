@@ -128,6 +128,9 @@ public class SearchResultActivity extends BaseActivity implements SortTypeSelect
     @Named("current_account")
     SharedPreferences mCurrentAccountSharedPreferences;
     @Inject
+    @Named("anonymous_account")
+    SharedPreferences mAnonymousAccountSharedPreferences;
+    @Inject
     CustomThemeWrapper mCustomThemeWrapper;
     private Call<String> subredditAutocompleteCall;
     private String mAccessToken;
@@ -201,6 +204,9 @@ public class SearchResultActivity extends BaseActivity implements SortTypeSelect
         fragmentManager = getSupportFragmentManager();
 
         mAccessToken = mCurrentAccountSharedPreferences.getString(SharedPreferencesUtils.ACCESS_TOKEN, null);
+        if (mAccessToken == null){
+            mAccessToken = mAnonymousAccountSharedPreferences.getString(SharedPreferencesUtils.ACCESS_TOKEN, null);
+        }
         mAccountName = mCurrentAccountSharedPreferences.getString(SharedPreferencesUtils.ACCOUNT_NAME, null);
 
         if (savedInstanceState != null) {

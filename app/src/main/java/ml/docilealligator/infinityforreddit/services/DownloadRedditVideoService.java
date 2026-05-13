@@ -39,6 +39,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.Random;
+import java.util.regex.Pattern;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -49,6 +50,7 @@ import ml.docilealligator.infinityforreddit.R;
 import ml.docilealligator.infinityforreddit.apis.DownloadFile;
 import ml.docilealligator.infinityforreddit.broadcastreceivers.DownloadedMediaDeleteActionBroadcastReceiver;
 import ml.docilealligator.infinityforreddit.customtheme.CustomThemeWrapper;
+import ml.docilealligator.infinityforreddit.utils.APIUtils;
 import ml.docilealligator.infinityforreddit.utils.NotificationUtils;
 import ml.docilealligator.infinityforreddit.utils.SharedPreferencesUtils;
 import okhttp3.OkHttpClient;
@@ -95,7 +97,6 @@ public class DownloadRedditVideoService extends Service {
         public void handleMessage(Message msg) {
             Bundle intent = msg.getData();
             String videoUrl = intent.getString(EXTRA_VIDEO_URL);
-            String audioUrl = Build.VERSION.SDK_INT > Build.VERSION_CODES.N ? videoUrl.substring(0, videoUrl.lastIndexOf('/')) + "/DASH_audio.mp4" : null;
             String subredditName = intent.getString(EXTRA_SUBREDDIT);
             String fileNameWithoutExtension = subredditName + "-" + intent.getString(EXTRA_POST_ID);
             boolean isNsfw = intent.getBoolean(EXTRA_IS_NSFW, false);
@@ -123,6 +124,7 @@ public class DownloadRedditVideoService extends Service {
                         okhttp3.Response originalResponse = chain.proceed(chain.request());
                         return originalResponse.newBuilder()
                                 .body(new DownloadProgressResponseBody(originalResponse.body(), progressListener))
+                                .header("User-Agent", APIUtils.VIDEO_USER_AGENT)
                                 .build();
                     })
                     .build();
@@ -208,7 +210,7 @@ public class DownloadRedditVideoService extends Service {
                             destinationFileUriString = picFile.getUri().toString();
                         }
 
-                        updateNotification(R.string.downloading_reddit_video_audio_track, 0,
+                        updateNotification(R.string.downloading_reddit_video, 0,
                                 randomNotificationIdOffset, null);
 
                         String videoFilePath = externalCacheDirectoryPath + fileNameWithoutExtension + "-cache.mp4";
@@ -218,73 +220,16 @@ public class DownloadRedditVideoService extends Service {
                             return;
                         }
 
-                        if (audioUrl != null) {
-                            Response<ResponseBody> audioResponse = downloadFile.downloadFile(audioUrl).execute();
-                            String outputFilePath = externalCacheDirectoryPath + fileNameWithoutExtension + ".mp4";
-                            if (audioResponse.isSuccessful() && audioResponse.body() != null) {
-                                String audioFilePath = externalCacheDirectoryPath + fileNameWithoutExtension + "-cache.mp3";
-
-                                String savedAudioFilePath = writeResponseBodyToDisk(audioResponse.body(), audioFilePath);
-                                if (savedAudioFilePath == null) {
-                                    downloadFinished(null, ERROR_AUDIO_FILE_CANNOT_SAVE, randomNotificationIdOffset);
-                                    return;
-                                }
-
-                                updateNotification(R.string.downloading_reddit_video_muxing, -1,
-                                        randomNotificationIdOffset, null);
-                                if (!muxVideoAndAudio(videoFilePath, audioFilePath, outputFilePath)) {
-                                    downloadFinished(null, ERROR_MUX_FAILED, randomNotificationIdOffset);
-                                    return;
-                                }
-
-                                updateNotification(R.string.downloading_reddit_video_save_file_to_public_dir, -1,
-                                        randomNotificationIdOffset, null);
-                                try {
-                                    Uri destinationFileUri = copyToDestination(outputFilePath, destinationFileUriString, destinationFileName, isDefaultDestination);
-
-                                    new File(videoFilePath).delete();
-                                    new File(audioFilePath).delete();
-                                    new File(outputFilePath).delete();
-
-                                    downloadFinished(destinationFileUri, NO_ERROR, randomNotificationIdOffset);
-                                } catch (IOException e) {
-                                    e.printStackTrace();
-                                    downloadFinished(null, ERROR_MUXED_VIDEO_FILE_CANNOT_SAVE, randomNotificationIdOffset);
-                                }
-                            } else {
-                                updateNotification(R.string.downloading_reddit_video_muxing, -1,
-                                        randomNotificationIdOffset, null);
-                                if (!muxVideoAndAudio(videoFilePath, null, outputFilePath)) {
-                                    downloadFinished(null, ERROR_MUX_FAILED, randomNotificationIdOffset);
-                                    return;
-                                }
-
-                                updateNotification(R.string.downloading_reddit_video_save_file_to_public_dir, -1,
-                                        randomNotificationIdOffset, null);
-                                try {
-                                    Uri destinationFileUri = copyToDestination(outputFilePath, destinationFileUriString, destinationFileName, isDefaultDestination);
-
-                                    new File(videoFilePath).delete();
-                                    new File(outputFilePath).delete();
-
-                                    downloadFinished(destinationFileUri, NO_ERROR, randomNotificationIdOffset);
-                                } catch (IOException e) {
-                                    e.printStackTrace();
-                                    downloadFinished(null, ERROR_MUXED_VIDEO_FILE_CANNOT_SAVE, randomNotificationIdOffset);
-                                }
-                            }
-                        } else {
-                            // do not remux video on <= Android N, just save video
-                            updateNotification(R.string.downloading_reddit_video_save_file_to_public_dir, -1,
-                                    randomNotificationIdOffset, null);
-                            try {
-                                Uri destinationFileUri = copyToDestination(videoFilePath, destinationFileUriString, destinationFileName, isDefaultDestination);
-                                new File(videoFilePath).delete();
-                                downloadFinished(destinationFileUri, NO_ERROR, randomNotificationIdOffset);
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                                downloadFinished(null, ERROR_MUXED_VIDEO_FILE_CANNOT_SAVE, randomNotificationIdOffset);
-                            }
+                        // do not remux video on <= Android N, just save video
+                        updateNotification(R.string.downloading_reddit_video_save_file_to_public_dir, -1,
+                                randomNotificationIdOffset, null);
+                        try {
+                            Uri destinationFileUri = copyToDestination(videoFilePath, destinationFileUriString, destinationFileName, isDefaultDestination);
+                            new File(videoFilePath).delete();
+                            downloadFinished(destinationFileUri, NO_ERROR, randomNotificationIdOffset);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                            downloadFinished(null, ERROR_MUXED_VIDEO_FILE_CANNOT_SAVE, randomNotificationIdOffset);
                         }
                     } else {
                         downloadFinished(null, ERROR_VIDEO_FILE_CANNOT_DOWNLOAD, randomNotificationIdOffset);

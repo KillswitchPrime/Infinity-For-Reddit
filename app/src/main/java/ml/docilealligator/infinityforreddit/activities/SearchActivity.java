@@ -43,6 +43,8 @@ import ml.docilealligator.infinityforreddit.R;
 import ml.docilealligator.infinityforreddit.RedditDataRoomDatabase;
 import ml.docilealligator.infinityforreddit.adapters.SearchActivityRecyclerViewAdapter;
 import ml.docilealligator.infinityforreddit.adapters.SubredditAutocompleteRecyclerViewAdapter;
+import ml.docilealligator.infinityforreddit.apis.GqlAPI;
+import ml.docilealligator.infinityforreddit.apis.GqlRequestBody;
 import ml.docilealligator.infinityforreddit.apis.RedditAPI;
 import ml.docilealligator.infinityforreddit.customtheme.CustomThemeWrapper;
 import ml.docilealligator.infinityforreddit.customviews.slidr.Slidr;
@@ -109,6 +111,9 @@ public class SearchActivity extends BaseActivity {
     @Named("oauth")
     Retrofit mOauthRetrofit;
     @Inject
+    @Named("gql")
+    Retrofit mGQLRetrofit;
+    @Inject
     RedditDataRoomDatabase mRedditDataRoomDatabase;
     @Inject
     @Named("default")
@@ -119,6 +124,9 @@ public class SearchActivity extends BaseActivity {
     @Inject
     @Named("nsfw_and_spoiler")
     SharedPreferences mNsfwAndSpoilerSharedPreferences;
+    @Inject
+    @Named("anonymous_account")
+    SharedPreferences mAnonymousAccountSharedPreferences;
     @Inject
     CustomThemeWrapper mCustomThemeWrapper;
     private String mAccountName;
@@ -213,8 +221,13 @@ public class SearchActivity extends BaseActivity {
                         subredditAutocompleteCall.cancel();
                     }
 
-                    subredditAutocompleteCall = mOauthRetrofit.create(RedditAPI.class).subredditAutocomplete(APIUtils.getOAuthHeader(mAccessToken),
-                            s.toString(), nsfw);
+                    if (mAccessToken == null) {
+                        mAccessToken = mAnonymousAccountSharedPreferences.getString(SharedPreferencesUtils.ACCESS_TOKEN, null);
+                    }
+                    if (mAccessToken == null) return;
+
+                    subredditAutocompleteCall = mGQLRetrofit.create(GqlAPI.class).subredditAutocomplete(APIUtils.getOAuthHeader(mAccessToken),
+                            GqlRequestBody.subredditAutocompleteBody(s.toString(), nsfw));
                     subredditAutocompleteCall.enqueue(new Callback<>() {
                         @Override
                         public void onResponse(@NonNull Call<String> call, @NonNull Response<String> response) {
@@ -247,7 +260,7 @@ public class SearchActivity extends BaseActivity {
         });
 
         searchEditText.setOnEditorActionListener((v, actionId, event) -> {
-            if ((actionId == EditorInfo.IME_ACTION_DONE || actionId == EditorInfo.IME_ACTION_SEARCH) || (event.getKeyCode() == KeyEvent.KEYCODE_ENTER && event.getAction() == KeyEvent.ACTION_DOWN )) {
+            if ((actionId == EditorInfo.IME_ACTION_DONE || actionId == EditorInfo.IME_ACTION_SEARCH) || (event.getKeyCode() == KeyEvent.KEYCODE_ENTER && event.getAction() == KeyEvent.ACTION_DOWN)) {
                 if (!searchEditText.getText().toString().isEmpty()) {
                     search(searchEditText.getText().toString());
                     return true;
@@ -302,36 +315,35 @@ public class SearchActivity extends BaseActivity {
     }
 
     private void bindView() {
-        if (mAccountName != null) {
-            adapter = new SearchActivityRecyclerViewAdapter(this, mCustomThemeWrapper, new SearchActivityRecyclerViewAdapter.ItemOnClickListener() {
-                @Override
-                public void onClick(String query) {
-                    search(query);
-                }
+        adapter = new SearchActivityRecyclerViewAdapter(this, mCustomThemeWrapper, new SearchActivityRecyclerViewAdapter.ItemOnClickListener() {
+            @Override
+            public void onClick(String query) {
+                search(query);
+            }
 
-                @Override
-                public void onDelete(RecentSearchQuery recentSearchQuery) {
-                    DeleteRecentSearchQuery.deleteRecentSearchQueryListener(mRedditDataRoomDatabase, recentSearchQuery, () -> {});
-                }
-            });
-            recyclerView.setVisibility(View.VISIBLE);
-            recyclerView.setNestedScrollingEnabled(false);
-            recyclerView.setAdapter(adapter);
-
-            if (mSharedPreferences.getBoolean(SharedPreferencesUtils.ENABLE_SEARCH_HISTORY, true)) {
-                mRecentSearchQueryViewModel = new ViewModelProvider(this,
-                        new RecentSearchQueryViewModel.Factory(mRedditDataRoomDatabase, mAccountName))
-                        .get(RecentSearchQueryViewModel.class);
-
-                mRecentSearchQueryViewModel.getAllRecentSearchQueries().observe(this, recentSearchQueries -> {
-                    if (recentSearchQueries != null && !recentSearchQueries.isEmpty()) {
-                        divider.setVisibility(View.VISIBLE);
-                    } else {
-                        divider.setVisibility(View.GONE);
-                    }
-                    adapter.setRecentSearchQueries(recentSearchQueries);
+            @Override
+            public void onDelete(RecentSearchQuery recentSearchQuery) {
+                DeleteRecentSearchQuery.deleteRecentSearchQueryListener(mRedditDataRoomDatabase, recentSearchQuery, () -> {
                 });
             }
+        });
+        recyclerView.setVisibility(View.VISIBLE);
+        recyclerView.setNestedScrollingEnabled(false);
+        recyclerView.setAdapter(adapter);
+
+        if (mSharedPreferences.getBoolean(SharedPreferencesUtils.ENABLE_SEARCH_HISTORY, true)) {
+            mRecentSearchQueryViewModel = new ViewModelProvider(this,
+                    new RecentSearchQueryViewModel.Factory(mRedditDataRoomDatabase, mAccountName))
+                    .get(RecentSearchQueryViewModel.class);
+
+            mRecentSearchQueryViewModel.getAllRecentSearchQueries().observe(this, recentSearchQueries -> {
+                if (recentSearchQueries != null && !recentSearchQueries.isEmpty()) {
+                    divider.setVisibility(View.VISIBLE);
+                } else {
+                    divider.setVisibility(View.GONE);
+                }
+                adapter.setRecentSearchQueries(recentSearchQueries);
+            });
         }
     }
 

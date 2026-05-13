@@ -8,6 +8,7 @@ import dagger.BindsInstance;
 import dagger.Component;
 import ml.docilealligator.infinityforreddit.activities.AccountPostsActivity;
 import ml.docilealligator.infinityforreddit.activities.AccountSavedThingActivity;
+import ml.docilealligator.infinityforreddit.activities.ChatOverviewActivity;
 import ml.docilealligator.infinityforreddit.activities.CommentActivity;
 import ml.docilealligator.infinityforreddit.activities.CreateMultiRedditActivity;
 import ml.docilealligator.infinityforreddit.activities.CustomThemeListingActivity;
@@ -103,6 +104,9 @@ import ml.docilealligator.infinityforreddit.settings.SecurityPreferenceFragment;
 import ml.docilealligator.infinityforreddit.settings.ThemePreferenceFragment;
 import ml.docilealligator.infinityforreddit.settings.TranslationFragment;
 import ml.docilealligator.infinityforreddit.settings.VideoPreferenceFragment;
+import ml.docilealligator.infinityforreddit.ui.RoomDetailFragment;
+import ml.docilealligator.infinityforreddit.ui.RoomListFragment;
+import ml.docilealligator.infinityforreddit.ui.SimpleLoginFragment;
 
 @Singleton
 @Component(modules = {AppModule.class, NetworkModule.class})
@@ -306,6 +310,13 @@ public interface AppComponent {
     void inject(HistoryActivity historyActivity);
 
     void inject(MorePostsInfoFragment morePostsInfoFragment);
+
+    void inject(ChatOverviewActivity chatOverviewActivity);
+
+    void inject(RoomListFragment roomListFragment);
+
+    void inject(RoomDetailFragment roomDetailFragment);
+    void inject(SimpleLoginFragment simpleLoginFragment);
 
     @Component.Factory
     interface Factory {

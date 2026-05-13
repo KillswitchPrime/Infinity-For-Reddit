@@ -145,6 +145,9 @@ public class PostVideoActivity extends BaseActivity implements FlairBottomSheetF
     @Named("oauth")
     Retrofit mOauthRetrofit;
     @Inject
+    @Named("gql")
+    Retrofit mGqlRetrofit;
+    @Inject
     @Named("upload_media")
     Retrofit mUploadMediaRetrofit;
     @Inject
@@ -219,7 +222,7 @@ public class PostVideoActivity extends BaseActivity implements FlairBottomSheetF
         player = new ExoPlayer.Builder(this).build();
         videoPlayerView.setPlayer(player);
         dataSourceFactory = new DefaultDataSourceFactory(this,
-                Util.getUserAgent(this, "Infinity"));
+                Util.getUserAgent(this, "Reddit"));
         if (mSharedPreferences.getBoolean(SharedPreferencesUtils.LOOP_VIDEO, true)) {
             player.setRepeatMode(Player.REPEAT_MODE_ALL);
         } else {
@@ -512,7 +515,7 @@ public class PostVideoActivity extends BaseActivity implements FlairBottomSheetF
 
     private void loadSubredditIcon() {
         LoadSubredditIcon.loadSubredditIcon(mExecutor, new Handler(), mRedditDataRoomDatabase, subredditName,
-                mAccessToken, mOauthRetrofit, mRetrofit, iconImageUrl -> {
+                mAccessToken, mOauthRetrofit, mRetrofit, mGqlRetrofit, iconImageUrl -> {
             iconUrl = iconImageUrl;
             displaySubredditIcon();
             loadSubredditIconSuccessful = true;

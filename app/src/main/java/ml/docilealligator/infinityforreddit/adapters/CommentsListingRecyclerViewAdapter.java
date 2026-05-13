@@ -77,6 +77,7 @@ public class CommentsListingRecyclerViewAdapter extends PagedListAdapter<Comment
     };
     private BaseActivity mActivity;
     private Retrofit mOauthRetrofit;
+    private Retrofit mGqlRetrofit;
     private Locale mLocale;
     private Markwon mMarkwon;
     private RecyclerView.RecycledViewPool recycledViewPool;
@@ -103,13 +104,14 @@ public class CommentsListingRecyclerViewAdapter extends PagedListAdapter<Comment
     private NetworkState networkState;
     private RetryLoadingMoreCallback mRetryLoadingMoreCallback;
 
-    public CommentsListingRecyclerViewAdapter(BaseActivity activity, Retrofit oauthRetrofit,
+    public CommentsListingRecyclerViewAdapter(BaseActivity activity, Retrofit oauthRetrofit, Retrofit gqlRetrofit,
                                               CustomThemeWrapper customThemeWrapper, Locale locale,
                                               SharedPreferences sharedPreferences, String accessToken,
                                               String accountName, RetryLoadingMoreCallback retryLoadingMoreCallback) {
         super(DIFF_CALLBACK);
         mActivity = activity;
         mOauthRetrofit = oauthRetrofit;
+        mGqlRetrofit = gqlRetrofit;
         mCommentColor = customThemeWrapper.getCommentColor();
         int commentSpoilerBackgroundColor = mCommentColor | 0xFF000000;
         mLocale = locale;
@@ -563,7 +565,7 @@ public class CommentsListingRecyclerViewAdapter extends PagedListAdapter<Comment
                                 comment.getScore() + comment.getVoteType()));
                     }
 
-                    VoteThing.voteThing(mActivity, mOauthRetrofit, mAccessToken, new VoteThing.VoteThingListener() {
+                    VoteThing.voteThing(mActivity, mGqlRetrofit, mAccessToken, new VoteThing.VoteThingListener() {
                         @Override
                         public void onVoteThingSuccess(int position1) {
                             int currentPosition = getBindingAdapterPosition();
@@ -633,7 +635,7 @@ public class CommentsListingRecyclerViewAdapter extends PagedListAdapter<Comment
                                 comment.getScore() + comment.getVoteType()));
                     }
 
-                    VoteThing.voteThing(mActivity, mOauthRetrofit, mAccessToken, new VoteThing.VoteThingListener() {
+                    VoteThing.voteThing(mActivity, mGqlRetrofit, mAccessToken, new VoteThing.VoteThingListener() {
                         @Override
                         public void onVoteThingSuccess(int position1) {
                             int currentPosition = getBindingAdapterPosition();

@@ -8,30 +8,43 @@ import android.widget.EditText;
 import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.FragmentActivity;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.giphy.sdk.core.models.Media;
+import com.giphy.sdk.ui.GPHContentType;
+import com.giphy.sdk.ui.GPHSettings;
+import com.giphy.sdk.ui.themes.GPHTheme;
+import com.giphy.sdk.ui.views.GiphyDialogFragment;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.slider.Slider;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textfield.TextInputEditText;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import ml.docilealligator.infinityforreddit.R;
 import ml.docilealligator.infinityforreddit.customtheme.CustomThemeWrapper;
+import ml.docilealligator.infinityforreddit.utils.APIUtils;
 
 public class MarkdownBottomBarRecyclerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
-    public static final int BOLD = 0;
-    public static final int ITALIC = 1;
-    public static final int LINK = 2;
-    public static final int STRIKE_THROUGH = 3;
-    public static final int HEADER = 4;
-    public static final int ORDERED_LIST = 5;
-    public static final int UNORDERED_LIST = 6;
-    public static final int SPOILER = 7;
-    public static final int QUOTE = 8;
-    public static final int CODE_BLOCK = 9;
-    public static final int UPLOAD_IMAGE = 10;
+    public static final int GIPHY_IMAGE = 0;
+    public static final int BOLD = 1;
+    public static final int ITALIC = 2;
+    public static final int LINK = 3;
+    public static final int STRIKE_THROUGH = 4;
+    public static final int HEADER = 5;
+    public static final int ORDERED_LIST = 6;
+    public static final int UNORDERED_LIST = 7;
+    public static final int SPOILER = 8;
+    public static final int QUOTE = 9;
+    public static final int CODE_BLOCK = 10;
+    public static final int UPLOAD_IMAGE = 11;
 
-    private static final int ITEM_COUNT = 10;
+    private static final int ITEM_COUNT = 12;
 
     private CustomThemeWrapper customThemeWrapper;
     private ItemClickListener itemClickListener;
@@ -57,6 +70,9 @@ public class MarkdownBottomBarRecyclerViewAdapter extends RecyclerView.Adapter<R
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
         if (holder instanceof MarkdownBottomBarItemViewHolder) {
             switch (position) {
+                case GIPHY_IMAGE:
+                    ((MarkdownBottomBarItemViewHolder) holder).imageView.setImageResource(R.drawable.baseline_gif_box_black_24);
+                    break;
                 case BOLD:
                     ((MarkdownBottomBarItemViewHolder) holder).imageView.setImageResource(R.drawable.ic_bold_black_24dp);
                     break;
@@ -101,7 +117,7 @@ public class MarkdownBottomBarRecyclerViewAdapter extends RecyclerView.Adapter<R
 
     public static void bindEditTextWithItemClickListener(Activity activity, EditText commentEditText, int item) {
         switch (item) {
-            case MarkdownBottomBarRecyclerViewAdapter.BOLD: {
+            case BOLD: {
                 int start = Math.max(commentEditText.getSelectionStart(), 0);
                 int end = Math.max(commentEditText.getSelectionEnd(), 0);
                 if (end != start) {
@@ -115,7 +131,7 @@ public class MarkdownBottomBarRecyclerViewAdapter extends RecyclerView.Adapter<R
                 }
                 break;
             }
-            case MarkdownBottomBarRecyclerViewAdapter.ITALIC: {
+            case ITALIC: {
                 int start = Math.max(commentEditText.getSelectionStart(), 0);
                 int end = Math.max(commentEditText.getSelectionEnd(), 0);
                 if (end != start) {
@@ -129,7 +145,7 @@ public class MarkdownBottomBarRecyclerViewAdapter extends RecyclerView.Adapter<R
                 }
                 break;
             }
-            case MarkdownBottomBarRecyclerViewAdapter.LINK: {
+            case LINK: {
                 View dialogView = activity.getLayoutInflater().inflate(R.layout.dialog_insert_link, null);
                 TextInputEditText textEditText = dialogView.findViewById(R.id.edit_text_insert_link_dialog);
                 TextInputEditText linkEditText = dialogView.findViewById(R.id.edit_link_insert_link_dialog);
@@ -159,7 +175,7 @@ public class MarkdownBottomBarRecyclerViewAdapter extends RecyclerView.Adapter<R
                         .show();
                 break;
             }
-            case MarkdownBottomBarRecyclerViewAdapter.STRIKE_THROUGH: {
+            case STRIKE_THROUGH: {
                 int start = Math.max(commentEditText.getSelectionStart(), 0);
                 int end = Math.max(commentEditText.getSelectionEnd(), 0);
                 if (end != start) {
@@ -173,7 +189,7 @@ public class MarkdownBottomBarRecyclerViewAdapter extends RecyclerView.Adapter<R
                 }
                 break;
             }
-            case MarkdownBottomBarRecyclerViewAdapter.HEADER: {
+            case HEADER: {
                 View dialogView = activity.getLayoutInflater().inflate(R.layout.dialog_select_header, null);
                 Slider seekBar = dialogView.findViewById(R.id.seek_bar_dialog_select_header);
                 new MaterialAlertDialogBuilder(activity, R.style.MaterialAlertDialogTheme)
@@ -217,7 +233,7 @@ public class MarkdownBottomBarRecyclerViewAdapter extends RecyclerView.Adapter<R
                         .show();
                 break;
             }
-            case MarkdownBottomBarRecyclerViewAdapter.ORDERED_LIST: {
+            case ORDERED_LIST: {
                 int start = Math.max(commentEditText.getSelectionStart(), 0);
                 int end = Math.max(commentEditText.getSelectionEnd(), 0);
                 if (end != start) {
@@ -230,7 +246,7 @@ public class MarkdownBottomBarRecyclerViewAdapter extends RecyclerView.Adapter<R
                 }
                 break;
             }
-            case MarkdownBottomBarRecyclerViewAdapter.UNORDERED_LIST: {
+            case UNORDERED_LIST: {
                 int start = Math.max(commentEditText.getSelectionStart(), 0);
                 int end = Math.max(commentEditText.getSelectionEnd(), 0);
                 if (end != start) {
@@ -243,7 +259,7 @@ public class MarkdownBottomBarRecyclerViewAdapter extends RecyclerView.Adapter<R
                 }
                 break;
             }
-            case MarkdownBottomBarRecyclerViewAdapter.SPOILER: {
+            case SPOILER: {
                 int start = Math.max(commentEditText.getSelectionStart(), 0);
                 int end = Math.max(commentEditText.getSelectionEnd(), 0);
                 if (end != start) {
@@ -285,8 +301,49 @@ public class MarkdownBottomBarRecyclerViewAdapter extends RecyclerView.Adapter<R
                 }
                 break;
             }
+            case GIPHY_IMAGE: {
+                Pattern gifPattern = Pattern.compile("!\\[gif]\\(giphy\\|\\w+\\)");
+                Matcher matcher = gifPattern.matcher(commentEditText.getText());
+                boolean matchFound = matcher.find();
+                if(matchFound){
+                    return;
+                }
+
+                GPHSettings settings = new GPHSettings();
+                GiphyDialogFragment dialog = GiphyDialogFragment.Companion.newInstance(settings, APIUtils.GIPHY_SDK_KEY);
+                dialog.setGifSelectionListener(new GiphyDialogFragment.GifSelectionListener() {
+                    @Override
+                    public void onGifSelected(@NonNull Media media, @Nullable String s, @NonNull GPHContentType gphContentType) {
+                        int start = Math.max(commentEditText.getSelectionStart(), 0);
+                        int end = Math.max(commentEditText.getSelectionEnd(), 0);
+                        String embedUrl = String.format("![gif](giphy|%s)", media.getId());
+                        if (end != start) {
+                            String currentSelection = commentEditText.getText().subSequence(start, end).toString();
+                            commentEditText.getText().replace(Math.min(start, end), Math.max(start, end),
+                                    "\n\n" + embedUrl + "\n\n" + currentSelection , 0, embedUrl.length() + ("\n\n".length())*2 + currentSelection.length());
+                        } else {
+                            commentEditText.getText().replace(start, end,
+                                    embedUrl + "\n\n", 0, embedUrl.length() + "\n\n".length());
+                            commentEditText.setSelection(start + embedUrl.length() + "\n\n".length());
+                        }
+                    }
+
+                    @Override
+                    public void onDismissed(@NonNull GPHContentType gphContentType) {
+
+                    }
+
+                    @Override
+                    public void didSearchTerm(@NonNull String s) {
+
+                    }
+                });
+                dialog.show(((FragmentActivity)activity).getSupportFragmentManager(), "gifs_dialog");
+                break;
+            }
         }
     }
+
 
     class MarkdownBottomBarItemViewHolder extends RecyclerView.ViewHolder {
         ImageView imageView;

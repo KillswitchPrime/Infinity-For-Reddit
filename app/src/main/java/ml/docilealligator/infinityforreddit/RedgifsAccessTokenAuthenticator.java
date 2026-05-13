@@ -23,8 +23,8 @@ public class RedgifsAccessTokenAuthenticator implements Interceptor {
     private static final String TAG = "RedgifsAuth";
     private SharedPreferences mCurrentAccountSharedPreferences;
 
-    public RedgifsAccessTokenAuthenticator(SharedPreferences currentAccountSharedPreferences) {
-        this.mCurrentAccountSharedPreferences = currentAccountSharedPreferences;
+    public RedgifsAccessTokenAuthenticator(SharedPreferences defaultSharedPreferences) {
+        this.mDefaultSharedPreferences = defaultSharedPreferences;
     }
 
     /**
@@ -123,7 +123,7 @@ public class RedgifsAccessTokenAuthenticator implements Interceptor {
 
             String accessToken = extractAccessToken(accessTokenHeader);
             synchronized (this) {
-                String accessTokenFromSharedPreferences = mCurrentAccountSharedPreferences.getString(SharedPreferencesUtils.REDGIFS_ACCESS_TOKEN, "");
+                String accessTokenFromSharedPreferences = mDefaultSharedPreferences.getString(SharedPreferencesUtils.REDGIFS_ACCESS_TOKEN, "");
                 if (accessToken.equals(accessTokenFromSharedPreferences)) {
                     String newAccessToken = refreshAccessToken();
                     if (!newAccessToken.equals("")) {

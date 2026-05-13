@@ -134,6 +134,7 @@ public class PostDetailRecyclerViewAdapter extends RecyclerView.Adapter<Recycler
     private Retrofit mOauthRetrofit;
     private Retrofit mGfycatRetrofit;
     private Retrofit mRedgifsRetrofit;
+    private Retrofit mGqlRetrofit;
     private final Provider<StreamableAPI> mStreamableApiProvider;
     private RedditDataRoomDatabase mRedditDataRoomDatabase;
     private SharedPreferences mCurrentAccountSharedPreferences;
@@ -214,7 +215,7 @@ public class PostDetailRecyclerViewAdapter extends RecyclerView.Adapter<Recycler
     public PostDetailRecyclerViewAdapter(BaseActivity activity, ViewPostDetailFragment fragment,
                                          Executor executor, CustomThemeWrapper customThemeWrapper,
                                          Retrofit retrofit, Retrofit oauthRetrofit, Retrofit gfycatRetrofit,
-                                         Retrofit redgifsRetrofit, Provider<StreamableAPI> streamableApiProvider,
+                                         Retrofit redgifsRetrofit, Retrofit gqlRetrofit, Provider<StreamableAPI> streamableApiProvider,
                                          RedditDataRoomDatabase redditDataRoomDatabase, RequestManager glide,
                                          boolean separatePostAndComments, String accessToken,
                                          String accountName, Post post, Locale locale,
@@ -231,6 +232,7 @@ public class PostDetailRecyclerViewAdapter extends RecyclerView.Adapter<Recycler
         mOauthRetrofit = oauthRetrofit;
         mGfycatRetrofit = gfycatRetrofit;
         mRedgifsRetrofit = redgifsRetrofit;
+        mGqlRetrofit = gqlRetrofit;
         mStreamableApiProvider = streamableApiProvider;
         mRedditDataRoomDatabase = redditDataRoomDatabase;
         mGlide = glide;
@@ -508,7 +510,7 @@ public class PostDetailRecyclerViewAdapter extends RecyclerView.Adapter<Recycler
                 if (mPost.getSubredditIconUrl() == null) {
                     LoadSubredditIcon.loadSubredditIcon(mExecutor, new Handler(),
                             mRedditDataRoomDatabase, mPost.getSubredditNamePrefixed().substring(2),
-                            mAccessToken, mOauthRetrofit, mRetrofit, iconImageUrl -> {
+                            mAccessToken, mOauthRetrofit, mRetrofit, mGqlRetrofit, iconImageUrl -> {
                                 if (iconImageUrl == null || iconImageUrl.equals("")) {
                                     mGlide.load(R.drawable.subreddit_default_icon)
                                             .apply(RequestOptions.bitmapTransform(new RoundedCornersTransformation(72, 0)))
@@ -666,7 +668,7 @@ public class PostDetailRecyclerViewAdapter extends RecyclerView.Adapter<Recycler
                 if (mPost.isGfycat() || mPost.isRedgifs() && !mPost.isLoadGfycatOrStreamableVideoSuccess()) {
                     ((PostDetailVideoAutoplayViewHolder) holder).fetchGfycatOrStreamableVideoCall =
                             mPost.isGfycat() ? mGfycatRetrofit.create(GfycatAPI.class).getGfycatData(mPost.getGfycatId()) :
-                                    mRedgifsRetrofit.create(RedgifsAPI.class).getRedgifsData(APIUtils.getRedgifsOAuthHeader(mCurrentAccountSharedPreferences.getString(SharedPreferencesUtils.REDGIFS_ACCESS_TOKEN, "")), mPost.getGfycatId(), APIUtils.USER_AGENT);
+                                    mRedgifsRetrofit.create(RedgifsAPI.class).getRedgifsData(APIUtils.getRedgifsOAuthHeader(mCurrentAccountSharedPreferences.getString(SharedPreferencesUtils.REDGIFS_ACCESS_TOKEN, "")), mPost.getGfycatId());
                     FetchGfycatOrRedgifsVideoLinks.fetchGfycatOrRedgifsVideoLinksInRecyclerViewAdapter(mExecutor, new Handler(),
                             ((PostDetailVideoAutoplayViewHolder) holder).fetchGfycatOrStreamableVideoCall,
                             mPost.isGfycat(), mAutomaticallyTryRedgifs,
@@ -1230,7 +1232,7 @@ public class PostDetailRecyclerViewAdapter extends RecyclerView.Adapter<Recycler
 
                 mPostDetailRecyclerViewAdapterCallback.updatePost(mPost);
 
-                VoteThing.voteThing(mActivity, mOauthRetrofit, mAccessToken, new VoteThing.VoteThingWithoutPositionListener() {
+                VoteThing.voteThing(mActivity, mGqlRetrofit, mAccessToken, new VoteThing.VoteThingWithoutPositionListener() {
                     @Override
                     public void onVoteThingSuccess() {
                         if (newVoteType.equals(APIUtils.DIR_UPVOTE)) {
@@ -1310,7 +1312,7 @@ public class PostDetailRecyclerViewAdapter extends RecyclerView.Adapter<Recycler
 
                 mPostDetailRecyclerViewAdapterCallback.updatePost(mPost);
 
-                VoteThing.voteThing(mActivity, mOauthRetrofit, mAccessToken, new VoteThing.VoteThingWithoutPositionListener() {
+                VoteThing.voteThing(mActivity, mGqlRetrofit, mAccessToken, new VoteThing.VoteThingWithoutPositionListener() {
                     @Override
                     public void onVoteThingSuccess() {
                         if (newVoteType.equals(APIUtils.DIR_DOWNVOTE)) {
