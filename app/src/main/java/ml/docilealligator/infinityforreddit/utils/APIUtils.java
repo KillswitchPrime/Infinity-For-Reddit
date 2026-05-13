@@ -35,7 +35,6 @@ public class APIUtils {
     public static final String RESPONSE_TYPE_KEY = "response_type";
     public static final String RESPONSE_TYPE = "code";
     public static final String STATE_KEY = "state";
-    public static final String STATE = "23ro8xlxvzp4asqd";
     // Generate a random state per-session to prevent CSRF on the OAuth redirect.
     public static final String STATE = java.util.UUID.randomUUID().toString();
     public static final String REDIRECT_URI_KEY = "redirect_uri";
@@ -49,7 +48,7 @@ public class APIUtils {
     public static final String AUTHORIZATION_KEY = "Authorization";
     public static final String AUTHORIZATION_BASE = "bearer ";
     public static final String USER_AGENT_KEY = "User-Agent";
-    public static final String USER_AGENT = "android:ml.docilealligator.infinityforreddit:v5.3.0 (by /u/Hostilenemy)";
+    public static final String USER_AGENT = "android:com.anonymous.privateapp:v1.0.0 (by /u/KillswitchActivate)";
     // Spoofs a desktop Chrome browser for the login WebView only — Reddit's OAuth page
     // redirects the Reddit API user-agent to a broken mobile flow, so we need a real browser UA here.
     public static final String LOGIN_WEBVIEW_USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
