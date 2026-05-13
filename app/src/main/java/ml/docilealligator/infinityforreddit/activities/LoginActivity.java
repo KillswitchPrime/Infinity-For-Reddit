@@ -15,6 +15,7 @@ import android.view.InflateException;
 import android.view.MenuItem;
 import android.view.View;
 import android.webkit.CookieManager;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.TextView;
@@ -148,7 +149,8 @@ public class LoginActivity extends BaseActivity {
         }
 
         webView.getSettings().setJavaScriptEnabled(true);
-        webView.getSettings().setDomStorageEnabled(enableDom);
+        webView.getSettings().setDomStorageEnabled(true);
+        webView.getSettings().setUserAgentString(APIUtils.DESKTOP_USER_AGENT);
 
         Uri baseUri = Uri.parse(APIUtils.OAUTH_URL);
         Uri.Builder uriBuilder = baseUri.buildUpon();
@@ -166,6 +168,11 @@ public class LoginActivity extends BaseActivity {
 
         webView.loadUrl(url);
         webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                return shouldOverrideUrlLoading(view, request.getUrl().toString());
+            }
+
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
                 if (url.contains("&code=") || url.contains("?code=")) {
