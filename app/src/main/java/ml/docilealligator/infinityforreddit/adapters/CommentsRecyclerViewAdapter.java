@@ -51,6 +51,7 @@ import ml.docilealligator.infinityforreddit.SortType;
 import ml.docilealligator.infinityforreddit.VoteThing;
 import ml.docilealligator.infinityforreddit.activities.BaseActivity;
 import ml.docilealligator.infinityforreddit.activities.CommentActivity;
+import ml.docilealligator.infinityforreddit.activities.ViewImageOrGifActivity;
 import ml.docilealligator.infinityforreddit.activities.LinkResolverActivity;
 import ml.docilealligator.infinityforreddit.activities.ViewPostDetailActivity;
 import ml.docilealligator.infinityforreddit.activities.ViewUserDetailActivity;
@@ -205,7 +206,35 @@ public class CommentsRecyclerViewAdapter extends RecyclerView.Adapter<RecyclerVi
             return true;
         };
         mCommentMarkwon = MarkdownUtils.createFullRedditMarkwon(mActivity,
-                miscPlugin, mCommentTextColor, commentSpoilerBackgroundColor, onLinkLongClickListener);
+                miscPlugin, mCommentTextColor, commentSpoilerBackgroundColor, onLinkLongClickListener,
+                (textView, imageUrl) -> {
+                    if (!activity.isDestroyed() && !activity.isFinishing()) {
+                        Intent intent = new Intent(activity, ViewImageOrGifActivity.class);
+                        String lower = imageUrl.toLowerCase();
+                        int q = lower.indexOf('?');
+                        String clean = q >= 0 ? lower.substring(0, q) : lower;
+
+                        // Rewrite Giphy mp4 → gif so the viewer gets an actual GIF
+                        String resolvedUrl = imageUrl;
+                        if (clean.contains("giphy.com") && clean.endsWith(".mp4")) {
+                            resolvedUrl = imageUrl.substring(0, imageUrl.length() - 4) + ".gif";
+                            clean = clean.substring(0, clean.length() - 4) + ".gif";
+                        }
+
+                        if (clean.endsWith(".gif") || clean.contains("giphy.com")) {
+                            intent.putExtra(ViewImageOrGifActivity.EXTRA_GIF_URL_KEY, resolvedUrl);
+                        } else {
+                            intent.putExtra(ViewImageOrGifActivity.EXTRA_IMAGE_URL_KEY, resolvedUrl);
+                        }
+                        intent.putExtra(ViewImageOrGifActivity.EXTRA_FILE_NAME_KEY,
+                                mPost.getSubredditName() + "-comment-image");
+                        intent.putExtra(ViewImageOrGifActivity.EXTRA_SUBREDDIT_OR_USERNAME_KEY,
+                                mPost.getSubredditName());
+                        intent.putExtra(ViewImageOrGifActivity.EXTRA_POST_TITLE_KEY, "");
+                        intent.putExtra(ViewImageOrGifActivity.EXTRA_IS_NSFW, mPost.isNSFW());
+                        activity.startActivity(intent);
+                    }
+                });
         recycledViewPool = new RecyclerView.RecycledViewPool();
         mAccessToken = accessToken;
         mAccountName = accountName;
@@ -438,7 +467,8 @@ public class CommentsRecyclerViewAdapter extends RecyclerView.Adapter<RecyclerVi
                     Utils.setHTMLWithImageToTextView(((CommentViewHolder) holder).awardsTextView, comment.getAwards(), true);
                 }
 
-                ((CommentViewHolder) holder).mMarkwonAdapter.setMarkdown(mCommentMarkwon, comment.getCommentMarkdown());
+                String commentMd = ml.docilealligator.infinityforreddit.markdown.InlineGifPlugin.preprocessMarkdown(comment.getCommentMarkdown());
+                ((CommentViewHolder) holder).mMarkwonAdapter.setMarkdown(mCommentMarkwon, commentMd);
                 // noinspection NotifyDataSetChanged
                 ((CommentViewHolder) holder).mMarkwonAdapter.notifyDataSetChanged();
 

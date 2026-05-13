@@ -15,6 +15,9 @@ public interface RedgifsAPI {
     @GET("/v2/gifs/{id}")
     Call<String> getRedgifsData(@HeaderMap Map<String, String> headers, @Path("id") String id, @Query("user-agent") String userAgent);
 
+    @GET("/v2/auth/temporary")
+    Call<String> getTemporaryAccessToken();
+
     @FormUrlEncoded
     @POST("/v2/oauth/client")
     Call<String> getRedgifsAccessToken(@FieldMap Map<String, String> params);

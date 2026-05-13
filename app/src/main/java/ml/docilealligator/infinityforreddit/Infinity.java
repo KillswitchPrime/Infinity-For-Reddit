@@ -11,6 +11,8 @@ import android.os.Bundle;
 import android.view.WindowManager;
 import android.widget.Toast;
 
+import android.util.Log;
+
 import com.evernote.android.state.StateSaver;
 import com.livefront.bridge.Bridge;
 import com.livefront.bridge.SavedStateHandler;
@@ -56,6 +58,10 @@ public class Infinity extends Application implements LifecycleObserver {
     @Named("security")
     SharedPreferences mSecuritySharedPreferences;
 
+    @Inject
+    @Named("current_account")
+    SharedPreferences mCurrentAccountSharedPreferences;
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -64,6 +70,11 @@ public class Infinity extends Application implements LifecycleObserver {
                 .create(this);
 
         mAppComponent.inject(this);
+
+        // Eagerly refresh the Redgifs temporary token in the background on every app start.
+        // This clears any stale/expired token from old credential-based flows and ensures
+        // Redgifs GIFs load immediately without a 401 round-trip on the first request.
+        prefetchRedgifsToken();
 
         appLock = mSecuritySharedPreferences.getBoolean(SharedPreferencesUtils.APP_LOCK, false);
         appLockTimeout = Long.parseLong(mSecuritySharedPreferences.getString(SharedPreferencesUtils.APP_LOCK_TIMEOUT, "600000"));
@@ -175,6 +186,32 @@ public class Infinity extends Application implements LifecycleObserver {
 
     public AppComponent getAppComponent() {
         return mAppComponent;
+    }
+
+    /**
+     * Fetches a fresh Redgifs temporary token in a background thread on every app start.
+     * Clears the old stored token first so that no stale/expired value is ever used.
+     */
+    private void prefetchRedgifsToken() {
+        // Clear the old token immediately so callers never use an expired one while we fetch.
+        mCurrentAccountSharedPreferences.edit()
+                .remove(ml.docilealligator.infinityforreddit.utils.SharedPreferencesUtils.REDGIFS_ACCESS_TOKEN)
+                .apply();
+
+        new Thread(() -> {
+            try {
+                RedgifsAccessTokenAuthenticator authenticator =
+                        new RedgifsAccessTokenAuthenticator(mCurrentAccountSharedPreferences);
+                String token = authenticator.refreshAccessToken();
+                if (token.isEmpty()) {
+                    Log.e("Infinity", "Failed to pre-fetch Redgifs token on startup");
+                } else {
+                    Log.d("Infinity", "Redgifs token pre-fetched successfully on startup");
+                }
+            } catch (Exception e) {
+                Log.e("Infinity", "Exception while pre-fetching Redgifs token", e);
+            }
+        }, "redgifs-token-prefetch").start();
     }
 
     @Subscribe

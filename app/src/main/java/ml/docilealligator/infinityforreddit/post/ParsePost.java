@@ -4,6 +4,7 @@ import android.net.Uri;
 import android.os.Handler;
 import android.text.Html;
 import android.text.TextUtils;
+import android.util.Log;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -19,6 +20,7 @@ import java.util.regex.Pattern;
 
 import ml.docilealligator.infinityforreddit.postfilter.PostFilter;
 import ml.docilealligator.infinityforreddit.utils.JSONUtils;
+import ml.docilealligator.infinityforreddit.utils.RichtextConverter;
 import ml.docilealligator.infinityforreddit.utils.Utils;
 
 /**
@@ -312,7 +314,7 @@ public class ParsePost {
                         if (data.isNull(JSONUtils.SELFTEXT_KEY)) {
                             post.setSelfText("");
                         } else {
-                            post.setSelfText(Utils.modifyMarkdown(Utils.trimTrailingWhitespace(data.getString(JSONUtils.SELFTEXT_KEY))));
+                            post.setSelfText(getSelfText(data));
                         }
 
                         String authority = uri.getAuthority();
@@ -491,7 +493,7 @@ public class ParsePost {
                             if (data.isNull(JSONUtils.SELFTEXT_KEY)) {
                                 post.setSelfText("");
                             } else {
-                                post.setSelfText(Utils.modifyMarkdown(Utils.trimTrailingWhitespace(data.getString(JSONUtils.SELFTEXT_KEY))));
+                                post.setSelfText(getSelfText(data));
                             }
 
                             post.setPreviews(previews);
@@ -559,7 +561,7 @@ public class ParsePost {
                     if (data.isNull(JSONUtils.SELFTEXT_KEY)) {
                         post.setSelfText("");
                     } else {
-                        post.setSelfText(Utils.modifyMarkdown(Utils.trimTrailingWhitespace(data.getString(JSONUtils.SELFTEXT_KEY))));
+                        post.setSelfText(getSelfText(data));
                     }
 
                     String authority = uri.getAuthority();
@@ -703,7 +705,7 @@ public class ParsePost {
             if (data.isNull(JSONUtils.SELFTEXT_KEY)) {
                 post.setSelfText("");
             } else {
-                String selfText = Utils.modifyMarkdown(Utils.trimTrailingWhitespace(data.getString(JSONUtils.SELFTEXT_KEY)));
+                String selfText = getSelfText(data);
                 post.setSelfText(selfText);
                 if (data.isNull(JSONUtils.SELFTEXT_HTML_KEY)) {
                     post.setSelfTextPlainTrimmed("");
@@ -730,6 +732,22 @@ public class ParsePost {
         }
 
         return post;
+    }
+
+    private static String filterSelfText(String selfText) {
+        if (selfText == null) return "";
+        return selfText;
+    }
+
+    /**
+     * Gets the best available selftext. Passes through as-is — Reddit's own fallback
+     * message for richtext posts includes a working sh.reddit.com link that opens in browser.
+     */
+    private static String getSelfText(JSONObject data) throws JSONException {
+        String rawSelfText = data.isNull(JSONUtils.SELFTEXT_KEY) ? "" :
+                Utils.trimTrailingWhitespace(data.getString(JSONUtils.SELFTEXT_KEY));
+
+        return Utils.modifyMarkdown(rawSelfText);
     }
 
     public interface ParsePostsListingListener {

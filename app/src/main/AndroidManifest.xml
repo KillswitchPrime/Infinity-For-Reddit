@@ -34,99 +34,117 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
-        android:usesCleartextTraffic="true"
+        android:networkSecurityConfig="@xml/network_security_config"
         tools:replace="android:label">
         <activity
             android:name=".activities.HistoryActivity"
             android:exported="false"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:label="@string/history_activity_label"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.Slidable" />
         <activity
             android:name=".activities.PostPollActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:label="@string/post_poll_activity_label"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.NoActionBar"
             android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".activities.EditProfileActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:label="@string/edit_profile_activity_label"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.Slidable"
             android:windowSoftInputMode="adjustPan" />
         <activity
             android:name=".activities.WikiActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:label="@string/wiki_activity_label"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.Slidable" />
         <activity
             android:name=".activities.TrendingActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:label="@string/trending_activity_label"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.Slidable" />
         <activity
             android:name=".activities.PostGalleryActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:label="@string/post_gallery_activity_label"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.NoActionBar"
             android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".activities.LockScreenActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".activities.WebViewActivity"
-            android:configChanges="orientation|screenSize"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:label=""
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".activities.SuicidePreventionActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".activities.MultiredditSelectionActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:label="@string/multireddit_selection_activity_label"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".activities.SearchUsersResultActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:label="@string/search_users_result_activity_label"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".activities.PostFilterUsageListingActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:parentActivityName=".activities.SettingsActivity"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".activities.PostFilterPreferenceActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:label="@string/post_filter_preference_activity_label"
             android:parentActivityName=".activities.SettingsActivity"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".activities.CustomizePostFilterActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:label="@string/customize_post_filter_activity_label"
             android:parentActivityName=".activities.SettingsActivity"
             android:theme="@style/AppTheme.NoActionBar"
             android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".activities.FetchRandomSubredditOrPostActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".activities.GiveAwardActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:label="@string/give_award_activity_label"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.Slidable" />
         <activity
             android:name=".activities.SelectUserFlairActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.Slidable" />
         <activity
             android:name=".activities.FullMarkdownActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.Slidable" />
         <activity
             android:name=".activities.SubmitCrosspostActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:label="@string/submit_crosspost_activity_label"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.NoActionBar"
@@ -144,6 +162,7 @@
             android:theme="@style/AppTheme.Draggable" />
         <activity
             android:name=".activities.SendPrivateMessageActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:label="@string/send_private_message_activity_label"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.NoActionBar"
@@ -156,6 +175,7 @@
 
         <activity
             android:name=".activities.ViewPrivateMessagesActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.NoActionBar"
             android:windowSoftInputMode="adjustResize" />
@@ -166,56 +186,67 @@
             android:theme="@style/AppTheme.Draggable" />
         <activity
             android:name=".activities.ReportActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:label="@string/report_activity_label"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.Slidable" />
         <activity
             android:name=".activities.SelectedSubredditsAndUsersActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:label="@string/selected_subeddits_activity_label"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.Slidable" />
         <activity
             android:name=".activities.EditMultiRedditActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:label="@string/edit_multi_reddit_activity_label"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.Slidable" />
         <activity
             android:name=".activities.CustomThemePreviewActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:label="@string/theme_preview_activity_label"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.Slidable" />
         <activity
             android:name=".activities.CustomThemeListingActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:label="@string/custom_theme_listing_activity_label"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".activities.CustomizeThemeActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:label="@string/customize_theme_activity_label"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".activities.SubredditMultiselectionActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:label="@string/subreddit_multiselection_activity_label"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.Slidable" />
         <activity
             android:name=".activities.CreateMultiRedditActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:label="@string/create_multi_reddit_activity_label"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.Slidable"
             android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".activities.ViewMultiRedditDetailActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.Slidable" />
         <activity
             android:name=".activities.AccountSavedThingActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:label="@string/account_saved_thing_activity_label"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.Slidable" />
         <activity
             android:name=".activities.ShareDataResolverActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:exported="true">
             <intent-filter android:label="@string/submit_post">
                 <action android:name="android.intent.action.SEND" />
@@ -241,41 +272,49 @@
         </activity>
         <activity
             android:name=".activities.SettingsActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:label="@string/settings_activity_label"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/PreferenceActivityTheme" />
         <activity
             android:name=".activities.InboxActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:label="@string/view_message_activity_label"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.Slidable" />
         <activity
             android:name=".activities.AccountPostsActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.Slidable" />
         <activity
             android:name=".activities.EditCommentActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:label="@string/edit_comment_activity_label"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.NoActionBar"
             android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".activities.EditPostActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:label="@string/edit_post_activity_label"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.Slidable"
             android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".activities.FilteredPostsActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.Slidable" />
         <activity
             android:name=".activities.SearchSubredditsResultActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:label="@string/search_subreddits_activity_label"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.Slidable" />
         <activity
             android:name=".activities.LinkResolverActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:exported="true">
             <intent-filter android:label="@string/handle_link">
                 <action android:name="android.intent.action.SEND" />
@@ -319,62 +358,73 @@
         </activity>
         <activity
             android:name=".activities.SearchActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:label="@string/search_activity_label"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.Slidable"
             android:windowSoftInputMode="adjustPan" />
         <activity
             android:name=".activities.RulesActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:label="@string/rules_activity_label"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.Slidable" />
         <activity
             android:name=".activities.PostVideoActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:label="@string/post_video_activity_label"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.NoActionBar"
             android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".activities.PostImageActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:label="@string/post_image_activity_label"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.NoActionBar"
             android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".activities.PostLinkActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:label="@string/post_link_activity_label"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.NoActionBar"
             android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".activities.SubscribedThingListingActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:label="@string/subscriptions"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.Slidable" />
         <activity
             android:name=".activities.SubredditSelectionActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:label="@string/subreddit_selection_activity_label"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.Slidable" />
         <activity
             android:name=".activities.PostTextActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:label="@string/post_text_activity_label"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.NoActionBar"
             android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".activities.CommentActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:label="@string/comment_activity_label"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.NoActionBar"
             android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".activities.SearchResultActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:label="@string/search_activity_label"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.Slidable" />
         <activity
             android:name=".activities.MainActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:exported="true"
             android:label="@string/application_name"
             android:theme="@style/AppTheme.Launcher"
@@ -393,6 +443,7 @@
             android:theme="@style/AppTheme.Slidable" />
         <activity
             android:name=".activities.ViewImageOrGifActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.SlidableWithActionBar" />
         <activity
@@ -402,15 +453,18 @@
             android:theme="@style/AppTheme.Draggable" />
         <activity
             android:name=".activities.ViewPostDetailActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.Slidable"
             android:windowSoftInputMode="adjustPan" />
         <activity
             android:name=".activities.ViewSubredditDetailActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.Slidable" />
         <activity
             android:name=".activities.ViewUserDetailActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
             android:parentActivityName=".activities.MainActivity"
             android:theme="@style/AppTheme.Slidable" />
 

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Animated vector spinner shown while inline comment images/GIFs are loading.
+  Uses a simple sweep-arc path that rotates 360° in 800ms, looping infinitely.
+-->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:drawable="@drawable/ic_image_loading_spinner">
+
+    <target android:name="spinner_group">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="rotation"
+                android:valueFrom="0"
+                android:valueTo="360"
+                android:duration="800"
+                android:interpolator="@android:interpolator/linear"
+                android:repeatCount="-1"
+                android:repeatMode="restart" />
+        </aapt:attr>
+    </target>
+
+</animated-vector>

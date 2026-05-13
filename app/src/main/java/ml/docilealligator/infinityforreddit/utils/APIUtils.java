@@ -5,6 +5,7 @@ import android.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
+import ml.docilealligator.infinityforreddit.BuildConfig;
 import okhttp3.MediaType;
 import okhttp3.RequestBody;
 
@@ -28,10 +29,10 @@ public class APIUtils {
 
     public static final String CLIENT_ID_KEY = "client_id";
     public static final String CLIENT_SECRET_KEY = "client_secret";
-    public static final String CLIENT_ID = "NOe2iKrPPzwscA";
-    public static final String IMGUR_CLIENT_ID = "Client-ID cc671794e0ab397";
-    public static final String REDGIFS_CLIENT_ID = "1828d0bcc93-15ac-bde6-0005-d2ecbe8daab3";
-    public static final String REDGIFS_CLIENT_SECRET = "TJBlw7jRXW65NAGgFBtgZHu97WlzRXHYybK81sZ9dLM=";
+    public static final String CLIENT_ID = BuildConfig.REDDIT_CLIENT_ID;
+    public static final String IMGUR_CLIENT_ID = BuildConfig.IMGUR_CLIENT_ID;
+    public static final String REDGIFS_CLIENT_ID = BuildConfig.REDGIFS_CLIENT_ID;
+    public static final String REDGIFS_CLIENT_SECRET = BuildConfig.REDGIFS_CLIENT_SECRET;
     public static final String RESPONSE_TYPE_KEY = "response_type";
     public static final String RESPONSE_TYPE = "code";
     public static final String STATE_KEY = "state";
@@ -48,7 +49,7 @@ public class APIUtils {
     public static final String AUTHORIZATION_KEY = "Authorization";
     public static final String AUTHORIZATION_BASE = "bearer ";
     public static final String USER_AGENT_KEY = "User-Agent";
-    public static final String USER_AGENT = "android:com.anonymous.privateapp:v1.0.0 (by /u/KillswitchActivate)";
+    public static final String USER_AGENT = BuildConfig.REDDIT_USER_AGENT;
     // Spoofs a desktop Chrome browser for the login WebView only — Reddit's OAuth page
     // redirects the Reddit API user-agent to a broken mobile flow, so we need a real browser UA here.
     public static final String LOGIN_WEBVIEW_USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";

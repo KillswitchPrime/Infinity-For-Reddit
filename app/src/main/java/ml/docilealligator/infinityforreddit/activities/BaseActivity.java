@@ -26,6 +26,9 @@ import android.view.Window;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import android.util.Log;
+
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
@@ -60,6 +63,7 @@ import ml.docilealligator.infinityforreddit.utils.SharedPreferencesUtils;
 import ml.docilealligator.infinityforreddit.utils.Utils;
 
 public abstract class BaseActivity extends AppCompatActivity implements CustomFontReceiver {
+    private static final String TAG = "BaseActivity";
     private boolean immersiveInterface;
     private boolean changeStatusBarIconColor;
     private boolean transparentStatusBarAfterToolbarCollapsed;
@@ -223,6 +227,36 @@ public abstract class BaseActivity extends AppCompatActivity implements CustomFo
                 systemVisibilityToolbarCollapsed = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
             }
         }
+    }
+
+    @Override
+    public void onConfigurationChanged(@NonNull Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        Log.i(TAG, getClass().getSimpleName() + " onConfigurationChanged orientation=" + newConfig.orientation);
+
+        // Re-read immersive preference in case it differs per orientation
+        SharedPreferences mSharedPreferences = getDefaultSharedPreferences();
+        boolean immersiveInterfaceEnabled = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+                mSharedPreferences.getBoolean(SharedPreferencesUtils.IMMERSIVE_INTERFACE_KEY, true);
+        if (immersiveInterfaceEnabled && newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            immersiveInterfaceEnabled = !mSharedPreferences.getBoolean(
+                    SharedPreferencesUtils.DISABLE_IMMERSIVE_INTERFACE_IN_LANDSCAPE_MODE, false);
+        }
+
+        Window window = getWindow();
+        if (immersiveInterfaceEnabled && isImmersiveInterfaceApplicable) {
+            window.setNavigationBarColor(Color.TRANSPARENT);
+            window.setStatusBarColor(Color.TRANSPARENT);
+        } else {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                window.setNavigationBarColor(customThemeWrapper != null
+                        ? customThemeWrapper.getNavBarColor()
+                        : Color.BLACK);
+            }
+        }
+
+        // Re-apply system UI visibility flags to avoid stale state after rotation
+        getWindow().getDecorView().setSystemUiVisibility(systemVisibilityToolbarExpanded);
     }
 
     protected abstract SharedPreferences getDefaultSharedPreferences();
